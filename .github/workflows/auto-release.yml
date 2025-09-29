@@ -137,6 +137,11 @@ jobs:
           echo "node_version=$NODE_VERSION" >> $GITHUB_OUTPUT
           echo "sushi_version=$SUSHI_VERSION" >> $GITHUB_OUTPUT
 
+      - name: Get release timestamp
+        id: release-time
+        run: |
+          echo "timestamp=$(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_OUTPUT
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
@@ -176,7 +181,7 @@ jobs:
             ## 🔄 Auto-Release
             This release was automatically created because a new IG Publisher version is available.
             
-            **Release created:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+            **Release created:** ${{ steps.release-time.outputs.timestamp }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
