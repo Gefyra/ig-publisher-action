@@ -1,21 +1,13 @@
 version: 2
 updates:
   - package-ecosystem: "github-actions"
-    directory: "/"                      # wichtig: immer "/" für actions
+    directory: "/"                  # <- Pflicht für Actions
     schedule:
-      interval: "daily"
+      interval: "daily"             # oder "weekly"
       time: "06:00"
       timezone: "Europe/Berlin"
-    target-branch: "main"
+    target-branch: "main"           # Falls euer Default-Branch anders heißt, anpassen
     open-pull-requests-limit: 5
-    # gezielte Erlaubnis inkl. Major-Updates
-    allow:
-      - dependency-name: "actions/checkout"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "docker/build-push-action"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "softprops/action-gh-release"
-        update-types: ["version-update:semver-major"]
     labels: ["dependencies","github-actions"]
     commit-message:
       prefix: "chore"
