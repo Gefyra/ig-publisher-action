@@ -1,0 +1,43 @@
+name: Test Docker Build
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: ig-publisher-test:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test IG Publisher
+        run: |
+          docker run --rm ig-publisher-test:latest igpublisher --help
+
+      - name: Test SUSHI
+        run: |
+          docker run --rm ig-publisher-test:latest sushi --help
+
+      - name: Test Java
+        run: |
+          docker run --rm ig-publisher-test:latest java --version
+
+      - name: Test Node
+        run: |
+          docker run --rm ig-publisher-test:latest node --version

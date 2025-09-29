@@ -1,0 +1,30 @@
+name: 'HL7 FHIR IG Publisher'
+description: 'Run HL7 FHIR Implementation Guide Publisher with SUSHI support'
+author: 'Gefyra'
+
+branding:
+  icon: 'file-text'
+  color: 'blue'
+
+inputs:
+  command:
+    description: 'Command to run (igpublisher, sushi, or custom)'
+    required: false
+    default: 'igpublisher'
+  args:
+    description: 'Arguments to pass to the command'
+    required: false
+    default: '-ig ig.ini'
+  working-directory:
+    description: 'Working directory to run the command in'
+    required: false
+    default: '.'
+
+runs:
+  using: 'docker'
+  image: 'docker://ghcr.io/gefyra/ig-publisher-action:latest'
+  args:
+    - ${{ inputs.command }}
+    - ${{ inputs.args }}
+  env:
+    WORKING_DIR: ${{ inputs.working-directory }}

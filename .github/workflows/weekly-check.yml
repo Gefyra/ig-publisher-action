@@ -1,0 +1,139 @@
+name: Weekly Status & Backup Check
+
+on:
+  schedule:
+    # Every Monday at 08:00 UTC - as backup if Daily Auto-Release fails
+    - cron: '0 8 * * 1'
+  workflow_dispatch:
+
+jobs:
+  status-and-backup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check IG Publisher versions and auto-release status
+        id: status-check
+        run: |
+          # Get current versions
+          LATEST_RELEASE=$(curl -s https://api.github.com/repos/HL7/fhir-ig-publisher/releases/latest)
+          LATEST_VERSION=$(echo "$LATEST_RELEASE" | jq -r '.tag_name' | sed 's/^v//')
+          RELEASE_DATE=$(echo "$LATEST_RELEASE" | jq -r '.published_at')
+          
+          CURRENT_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          CURRENT_VERSION=$(echo "$CURRENT_TAG" | sed 's/^v//' | sed 's/-ig.*//')
+          
+          # Check when the last auto-release ran
+          LAST_WORKFLOW_RUN=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/auto-release.yml/runs?per_page=1" | \
+            jq -r '.workflow_runs[0].created_at // "never"')
+          
+          echo "latest_version=$LATEST_VERSION" >> $GITHUB_OUTPUT
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "release_date=$RELEASE_DATE" >> $GITHUB_OUTPUT
+          echo "last_auto_release=$LAST_WORKFLOW_RUN" >> $GITHUB_OUTPUT
+          
+          # Check if update available AND last auto-release more than 2 days old
+          if [ "$LATEST_VERSION" != "$CURRENT_VERSION" ]; then
+            # Calculate days since last auto-release
+            if [ "$LAST_WORKFLOW_RUN" != "never" ]; then
+              DAYS_SINCE_LAST=$(( ($(date +%s) - $(date -d "$LAST_WORKFLOW_RUN" +%s)) / 86400 ))
+              if [ $DAYS_SINCE_LAST -gt 2 ]; then
+                echo "backup_needed=true" >> $GITHUB_OUTPUT
+                echo "reason=Auto-Release failed or didn't run for $DAYS_SINCE_LAST days" >> $GITHUB_OUTPUT
+              else
+                echo "backup_needed=false" >> $GITHUB_OUTPUT
+                echo "reason=Auto-Release is working (last run: $DAYS_SINCE_LAST days ago)" >> $GITHUB_OUTPUT
+              fi
+            else
+              echo "backup_needed=true" >> $GITHUB_OUTPUT
+              echo "reason=No auto-release runs found" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "backup_needed=false" >> $GITHUB_OUTPUT
+            echo "reason=Versions are up-to-date" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create backup alert issue (only if auto-release failed)
+        if: steps.status-check.outputs.backup_needed == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'auto-release-failed,backup-needed'
+            });
+            
+            // Prüfe ob bereits ein Backup-Issue existiert
+            const existingIssue = issues.find(issue => 
+              issue.title.includes('Auto-Release Backup Required')
+            );
+            
+            if (!existingIssue) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `� Auto-Release Backup Required - IG Publisher v${{ steps.status-check.outputs.latest_version }}`,
+                labels: ['auto-release-failed', 'backup-needed', 'bug'],
+                body: `## ⚠️ Auto-Release System Issue Detected!
+                
+                **Problem:** ${{ steps.status-check.outputs.reason }}
+                
+                **Versions:**
+                - **Current Docker:** \`${{ steps.status-check.outputs.current_version }}\`
+                - **Latest IG Publisher:** \`${{ steps.status-check.outputs.latest_version }}\`
+                - **Last Auto-Release:** ${{ steps.status-check.outputs.last_auto_release }}
+                
+                ## 🔧 Manual Actions Required:
+                
+                1. **Check Auto-Release Workflow:**
+                   - [View Workflow Runs](https://github.com/${{ github.repository }}/actions/workflows/auto-release.yml)
+                   - Look for failed runs or errors
+                
+                2. **Manual Release (if needed):**
+                   \`\`\`bash
+                   gh workflow run auto-release.yml -f force_release=true
+                   \`\`\`
+                
+                3. **Debug Auto-Release:**
+                   - Check workflow permissions
+                   - Verify GitHub token access
+                   - Review recent workflow changes
+                
+                ## � Status:
+                - **IG Publisher Release Date:** ${{ steps.status-check.outputs.release_date }}
+                - **Auto-Release Status:** Failed/Delayed
+                - **Manual Intervention:** Required
+                
+                ---
+                *This backup alert was created by the Weekly Status Check because the daily auto-release system appears to have failed.*`
+              });
+            }
+
+      - name: Post weekly summary
+        run: |
+          echo "## 📊 Weekly IG Publisher Status Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Current Docker Version:** ${{ steps.status-check.outputs.current_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Latest IG Publisher:** ${{ steps.status-check.outputs.latest_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Last Auto-Release:** ${{ steps.status-check.outputs.last_auto_release }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Backup Needed:** ${{ steps.status-check.outputs.backup_needed }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** ${{ steps.status-check.outputs.reason }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.status-check.outputs.backup_needed }}" == "true" ]; then
+            echo "🚨 **Alert:** Auto-Release system needs attention!" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Check the [Auto-Release Workflow](https://github.com/${{ github.repository }}/actions/workflows/auto-release.yml) for issues." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ **All Good:** Auto-Release system is working properly!" >> $GITHUB_STEP_SUMMARY
+          fi
