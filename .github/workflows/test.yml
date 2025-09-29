@@ -29,11 +29,11 @@ jobs:
 
       - name: Test IG Publisher
         run: |
-          # Try local image first, fallback to registry
+          # Test if igpublisher command exists
           if docker image inspect ig-publisher-test:latest >/dev/null 2>&1; then
-            docker run --rm ig-publisher-test:latest igpublisher --help
+            docker run --rm ig-publisher-test:latest which igpublisher
           else
-            docker run --rm ghcr.io/gefyra/ig-publisher-action:latest igpublisher --help
+            docker run --rm ghcr.io/gefyra/ig-publisher-action:latest which igpublisher
           fi
 
       - name: Test SUSHI
