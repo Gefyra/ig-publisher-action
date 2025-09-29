@@ -2,13 +2,13 @@
 
 [![Docker Build](https://github.com/Gefyra/ig-publisher-action/actions/workflows/auto-release.yml/badge.svg)](https://github.com/Gefyra/ig-publisher-action/actions/workflows/auto-release.yml)
 [![Test Docker Build](https://github.com/Gefyra/ig-publisher-action/actions/workflows/test.yml/badge.svg)](https://github.com/Gefyra/ig-publisher-action/actions/workflows/test.yml)
-[![Docker Image Size](https://img.shields.io/docker/image-size/ghcr.io/gefyra/ig-publisher-action/latest?logo=docker&label=Image%20Size)](https://github.com/Gefyra/ig-publisher-action/pkgs/container/ig-publisher-action)
-[![Docker Pulls](https://img.shields.io/docker/pulls/ghcr.io/gefyra/ig-publisher-action?logo=docker&label=Pulls)](https://github.com/Gefyra/ig-publisher-action/pkgs/container/ig-publisher-action)
+[![GitHub Container Registry](https://img.shields.io/badge/ghcr.io-ig--publisher--action-blue?logo=docker&logoColor=white)](https://github.com/Gefyra/ig-publisher-action/pkgs/container/ig-publisher-action)
 [![GitHub Release](https://img.shields.io/github/v/release/Gefyra/ig-publisher-action?logo=github&label=Latest%20Release)](https://github.com/Gefyra/ig-publisher-action/releases/latest)
 [![License](https://img.shields.io/github/license/Gefyra/ig-publisher-action?logo=opensource&label=License)](LICENSE)
 [![FHIR](https://img.shields.io/badge/FHIR-R4%2FR5-red?logo=hl7&logoColor=white)](https://hl7.org/fhir/)
 [![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-20-green?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Multi-Platform](https://img.shields.io/badge/Platform-AMD64%20%7C%20ARM64-lightgrey?logo=docker&logoColor=white)](https://github.com/Gefyra/ig-publisher-action/pkgs/container/ig-publisher-action)
 
 This repository creates a Docker image and GitHub Action for the HL7 FHIR Implementation Guide Publisher with all necessary dependencies. Perfect for CI/CD pipelines and automated IG builds.
 
