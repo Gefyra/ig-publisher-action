@@ -35,6 +35,7 @@ updates:
       - "patrick-werner"
     assignees:
       - "patrick-werner"
+    # don't upgrade major versions of eclipse-temurin (Java) automatically
     ignore:
       - dependency-name: "eclipse-temurin"
         update-types: ["version-update:semver-major"]
