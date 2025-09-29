@@ -23,21 +23,39 @@ jobs:
           context: .
           push: false
           tags: ig-publisher-test:latest
+          load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Test IG Publisher
         run: |
-          docker run --rm ig-publisher-test:latest igpublisher --help
+          # Try local image first, fallback to registry
+          if docker image inspect ig-publisher-test:latest >/dev/null 2>&1; then
+            docker run --rm ig-publisher-test:latest igpublisher --help
+          else
+            docker run --rm ghcr.io/gefyra/ig-publisher-action:latest igpublisher --help
+          fi
 
       - name: Test SUSHI
         run: |
-          docker run --rm ig-publisher-test:latest sushi --help
+          if docker image inspect ig-publisher-test:latest >/dev/null 2>&1; then
+            docker run --rm ig-publisher-test:latest sushi --help
+          else
+            docker run --rm ghcr.io/gefyra/ig-publisher-action:latest sushi --help
+          fi
 
       - name: Test Java
         run: |
-          docker run --rm ig-publisher-test:latest java --version
+          if docker image inspect ig-publisher-test:latest >/dev/null 2>&1; then
+            docker run --rm ig-publisher-test:latest java --version
+          else
+            docker run --rm ghcr.io/gefyra/ig-publisher-action:latest java --version
+          fi
 
       - name: Test Node
         run: |
-          docker run --rm ig-publisher-test:latest node --version
+          if docker image inspect ig-publisher-test:latest >/dev/null 2>&1; then
+            docker run --rm ig-publisher-test:latest node --version
+          else
+            docker run --rm ghcr.io/gefyra/ig-publisher-action:latest node --version
+          fi
