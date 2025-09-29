@@ -221,7 +221,7 @@ docker run --rm -v $(pwd):/github/workspace ghcr.io/gefyra/ig-publisher-action:l
 ### 🔄 Auto-Release on New IG Publisher Versions
 The repository automatically monitors new IG Publisher releases and creates corresponding Docker images:
 
-- **Daily Check** at 06:00 UTC
+- **Daily Check** at 00:00 UTC
 - **Automatic Release** on new IG Publisher versions
 - **Tag Format:** `v{ig-publisher-version}-ig{date}`
 - **Example:** `v1.6.24-ig20240929`
