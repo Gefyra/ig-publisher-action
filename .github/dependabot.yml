@@ -1,8 +1,8 @@
 version: 2
 updates:
-  # GitHub Actions dependencies
+  # GitHub Actions dependencies in workflows only
   - package-ecosystem: "github-actions"
-    directory: "/"
+    directory: "/.github/workflows"
     schedule:
       interval: "weekly"
       day: "monday"
