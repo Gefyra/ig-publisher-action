@@ -7,17 +7,16 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "06:00"
+      timezone: "Europe/Berlin"
     open-pull-requests-limit: 5
     commit-message:
       prefix: "chore"
       include: "scope"
-    labels:
-      - "dependencies"
-      - "github-actions"
+    labels: ["dependencies","github-actions"]
     reviewers:
-      - "Gefyra"
+      - "patrick-werner"
     assignees:
-      - "Gefyra"
+      - "patrick-werner"
 
   # Docker dependencies (base images)
   - package-ecosystem: "docker"
@@ -26,18 +25,16 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "06:30"
+      timezone: "Europe/Berlin"
     open-pull-requests-limit: 3
     commit-message:
       prefix: "chore"
       include: "scope"
-    labels:
-      - "dependencies"
-      - "docker"
+    labels: ["dependencies","docker"]
     reviewers:
-      - "Gefyra"
+      - "patrick-werner"
     assignees:
-      - "Gefyra"
-    # Ignore major version updates for base images to avoid breaking changes
+      - "patrick-werner"
     ignore:
       - dependency-name: "eclipse-temurin"
         update-types: ["version-update:semver-major"]
