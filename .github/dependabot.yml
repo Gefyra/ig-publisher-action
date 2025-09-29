@@ -13,10 +13,6 @@ updates:
       prefix: "chore"
       include: "scope"
     labels: ["dependencies","github-actions"]
-    reviewers:
-      - "patrick-werner"
-    assignees:
-      - "patrick-werner"
 
   # Docker dependencies (base images)
   - package-ecosystem: "docker"
@@ -31,10 +27,6 @@ updates:
       prefix: "chore"
       include: "scope"
     labels: ["dependencies","docker"]
-    reviewers:
-      - "patrick-werner"
-    assignees:
-      - "patrick-werner"
     # don't upgrade major versions of eclipse-temurin (Java) automatically
     ignore:
       - dependency-name: "eclipse-temurin"
