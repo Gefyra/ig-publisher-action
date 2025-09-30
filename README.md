@@ -4,7 +4,8 @@
 [![Extended Build](https://github.com/Gefyra/ig-publisher-action/actions/workflows/auto-release-with-snapshot-support.yml/badge.svg)](https://github.com/Gefyra/ig-publisher-action/actions/workflows/auto-release-with-snapshot-support.yml)
 [![Test Docker Build](https://github.com/Gefyra/ig-publisher-action/actions/workflows/test.yml/badge.svg)](https://github.com/Gefyra/ig-publisher-action/actions/workflows/test.yml)
 [![GitHub Container Registry](https://img.shields.io/badge/ghcr.io-ig--publisher-blue?logo=docker&logoColor=white)](https://github.com/Gefyra/ig-publisher-action/pkgs/container/ig-publisher)
-[![GitHub Release](https://img.shields.io/github/v/release/Gefyra/ig-publisher-action?logo=github&label=Latest%20Release)](https://github.com/Gefyra/ig-publisher-action/releases/latest)
+[![Latest Standard Release](https://img.shields.io/github/v/release/Gefyra/ig-publisher-action?logo=github&label=Standard%20Release&filter=*-ig*)](https://github.com/Gefyra/ig-publisher-action/releases/latest)
+[![Latest Extended Release](https://img.shields.io/github/v/release/Gefyra/ig-publisher-action?logo=github&label=Extended%20Release&filter=*-snapshot-support*)](https://github.com/Gefyra/ig-publisher-action/releases)
 [![License](https://img.shields.io/github/license/Gefyra/ig-publisher-action?logo=opensource&label=License)](LICENSE)
 [![FHIR](https://img.shields.io/badge/FHIR-R4%2FR5-red?logo=hl7&logoColor=white)](https://hl7.org/fhir/)
 [![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk&logoColor=white)](https://openjdk.org/)
@@ -44,19 +45,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      # Standard version (default)
-      - name: Run IG Publisher
-        uses: Gefyra/ig-publisher-action@main
-        with:
-          command: igpublisher
-          args: -ig ig.ini
-
-      # Build with SUSHI first  
+      # Build with SUSHI first (FSH → FHIR conversion)
       - name: Run SUSHI
         uses: Gefyra/ig-publisher-action@main
         with:
           command: sushi
           args: .
+
+      # Then run IG Publisher
+      - name: Run IG Publisher
+        uses: Gefyra/ig-publisher-action@main
+        with:
+          command: igpublisher
+          args: -ig ig.ini
 ```
 
 ### Method 2: With Snapshot Support
@@ -200,15 +201,15 @@ steps:
 # Pull latest standard version
 docker pull ghcr.io/gefyra/ig-publisher:latest
 
+# Run SUSHI first (FSH → FHIR conversion)
+docker run --rm -v $(pwd):/github/workspace \
+  ghcr.io/gefyra/ig-publisher:latest \
+  sushi .
+
 # Build Implementation Guide
 docker run --rm -v $(pwd):/github/workspace \
   ghcr.io/gefyra/ig-publisher:latest \
   igpublisher -ig ig.ini
-
-# Run SUSHI
-docker run --rm -v $(pwd):/github/workspace \
-  ghcr.io/gefyra/ig-publisher:latest \
-  sushi .
 ```
 
 ### With Snapshot Support Version
@@ -226,6 +227,11 @@ docker run --rm -v $(pwd):/github/workspace \
 docker run --rm -v $(pwd):/github/workspace \
   ghcr.io/gefyra/ig-publisher-with-snapshot-support:latest \
   fhir-pkg-tool --sushi-deps-file sushi-config.yaml --force-snapshot -o ./packages
+
+# Run SUSHI (FSH → FHIR conversion)
+docker run --rm -v $(pwd):/github/workspace \
+  ghcr.io/gefyra/ig-publisher-with-snapshot-support:latest \
+  sushi .
 
 # Build IG (same as standard)
 docker run --rm -v $(pwd):/github/workspace \
