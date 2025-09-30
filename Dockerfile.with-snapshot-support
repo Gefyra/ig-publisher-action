@@ -1,5 +1,6 @@
 # Extended version builds on the standard version
-FROM ghcr.io/gefyra/ig-publisher:latest
+ARG BASE_IMAGE=ghcr.io/gefyra/ig-publisher:latest
+FROM ${BASE_IMAGE}
 
 # FHIR Package Tool (With snapshot support version only)
 RUN mkdir -p /opt/fhir-pkg-tool \

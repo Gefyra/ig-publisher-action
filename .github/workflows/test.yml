@@ -44,6 +44,17 @@ jobs:
         run: |
           docker run --rm ig-publisher-test:latest node --version
 
+      - name: Save standard image as artifact
+        run: |
+          docker save ig-publisher-test:latest > /tmp/ig-publisher-standard.tar
+
+      - name: Upload standard image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ig-publisher-standard-image
+          path: /tmp/ig-publisher-standard.tar
+          retention-days: 1
+
   test-with-snapshot-support:
     runs-on: ubuntu-latest
     needs: test-standard
@@ -54,15 +65,23 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Update Dockerfile.with-snapshot-support for local testing
+      - name: Download standard image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ig-publisher-standard-image
+          path: /tmp
+
+      - name: Load standard image
         run: |
-          sed -i 's|FROM ghcr.io/gefyra/ig-publisher:latest|FROM ig-publisher-test:latest|' Dockerfile.with-snapshot-support
+          docker load < /tmp/ig-publisher-standard.tar
 
       - name: Build snapshot support Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile.with-snapshot-support
+          build-args: |
+            BASE_IMAGE=ig-publisher-test:latest
           push: false
           tags: ig-publisher-with-snapshot-support-test:latest
           load: true
