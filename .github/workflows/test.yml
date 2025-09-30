@@ -62,9 +62,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - name: Download standard image artifact
         uses: actions/download-artifact@v4
         with:
@@ -75,18 +72,13 @@ jobs:
         run: |
           docker load < /tmp/ig-publisher-standard.tar
 
-      - name: Build snapshot support Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile.with-snapshot-support
-          build-args: |
-            BASE_IMAGE=ig-publisher-test:latest
-          push: false
-          tags: ig-publisher-with-snapshot-support-test:latest
-          load: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Build snapshot support Docker image (without buildx)
+        run: |
+          docker build \
+            --build-arg BASE_IMAGE=ig-publisher-test:latest \
+            -f ./Dockerfile.with-snapshot-support \
+            -t ig-publisher-with-snapshot-support-test:latest \
+            .
 
       - name: Test IG Publisher
         run: |
