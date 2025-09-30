@@ -1,5 +1,5 @@
 name: 'HL7 FHIR IG Publisher'
-description: 'Run HL7 FHIR Implementation Guide Publisher with SUSHI support'
+description: 'Run HL7 FHIR Implementation Guide Publisher with SUSHI and optional FHIR Package Tool support'
 author: 'Gefyra'
 
 branding:
@@ -7,8 +7,12 @@ branding:
   color: 'blue'
 
 inputs:
+  variant:
+    description: 'Version to use: "standard" (default) or "with-snapshot-support"'
+    required: false
+    default: 'standard'
   command:
-    description: 'Command to run (igpublisher, sushi, or custom)'
+    description: 'Command to run (igpublisher, sushi, fhir-pkg-tool, or custom)'
     required: false
     default: 'igpublisher'
   args:
@@ -21,10 +25,20 @@ inputs:
     default: '.'
 
 runs:
-  using: 'docker'
-  image: 'docker://ghcr.io/gefyra/ig-publisher:latest'
-  args:
-    - ${{ inputs.command }}
-    - ${{ inputs.args }}
-  env:
-    WORKING_DIR: ${{ inputs.working-directory }}
+  using: 'composite'
+  steps:
+    - name: Run with standard variant
+      if: inputs.variant == 'standard'
+      uses: docker://ghcr.io/gefyra/ig-publisher:latest
+      with:
+        args: ${{ inputs.command }} ${{ inputs.args }}
+      env:
+        WORKING_DIR: ${{ inputs.working-directory }}
+        
+    - name: Run with snapshot support variant
+      if: inputs.variant == 'with-snapshot-support'
+      uses: docker://ghcr.io/gefyra/ig-publisher-with-snapshot-support:latest
+      with:
+        args: ${{ inputs.command }} ${{ inputs.args }}
+      env:
+        WORKING_DIR: ${{ inputs.working-directory }}

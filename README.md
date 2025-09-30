@@ -30,7 +30,7 @@ A comprehensive GitHub Action for building FHIR Implementation Guides with the H
 
 ## 🔄 GitHub Actions Integration
 
-### Method 1: Standard GitHub Action (Recommended)
+### Method 1: Standard Version (Default)
 
 For basic IG building with IG Publisher and SUSHI:
 
@@ -44,14 +44,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      # Standard version (IG Publisher + SUSHI)
+      # Standard version (default)
       - name: Run IG Publisher
         uses: Gefyra/ig-publisher-action@main
         with:
           command: igpublisher
           args: -ig ig.ini
 
-      # Build with SUSHI first
+      # Build with SUSHI first  
       - name: Run SUSHI
         uses: Gefyra/ig-publisher-action@main
         with:
@@ -59,9 +59,9 @@ jobs:
           args: .
 ```
 
-### Method 2: GitHub Action with Snapshot Support
+### Method 2: With Snapshot Support
 
-For workflows that need package management:
+For workflows that need package management, use the `variant` parameter:
 
 ```yaml
 name: Build IG with Package Management
@@ -73,22 +73,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      # With snapshot support (IG Publisher + SUSHI + FHIR Package Tool)
+      # With snapshot support variant
       - name: Download FHIR Packages
-        uses: Gefyra/ig-publisher-action/with-snapshot-support@main
+        uses: Gefyra/ig-publisher-action@main
         with:
+          variant: with-snapshot-support
           command: fhir-pkg-tool
           args: -p hl7.fhir.r4.core@4.0.1 -p hl7.fhir.us.core@6.1.0 -o ./packages
 
-      - name: Run SUSHI
-        uses: Gefyra/ig-publisher-action/with-snapshot-support@main
+      - name: Run SUSHI  
+        uses: Gefyra/ig-publisher-action@main
         with:
+          variant: with-snapshot-support
           command: sushi
           args: .
 
       - name: Run IG Publisher
-        uses: Gefyra/ig-publisher-action/with-snapshot-support@main
+        uses: Gefyra/ig-publisher-action@main
         with:
+          variant: with-snapshot-support
           command: igpublisher
           args: -ig ig.ini
 ```
@@ -135,20 +138,23 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download Dependencies
-        uses: Gefyra/ig-publisher-action/with-snapshot-support@main
+        uses: Gefyra/ig-publisher-action@main
         with:
+          variant: with-snapshot-support
           command: fhir-pkg-tool
           args: --sushi-deps-file sushi-config.yaml -o ./packages
 
       - name: Run SUSHI
-        uses: Gefyra/ig-publisher-action/with-snapshot-support@main
+        uses: Gefyra/ig-publisher-action@main
         with:
+          variant: with-snapshot-support
           command: sushi
           args: .
 
       - name: Build IG
-        uses: Gefyra/ig-publisher-action/with-snapshot-support@main
+        uses: Gefyra/ig-publisher-action@main
         with:
+          variant: with-snapshot-support
           command: igpublisher
           args: -ig ig.ini -tx https://tx.fhir.org
 
@@ -179,9 +185,11 @@ strategy:
 
 steps:
   - name: Build with ${{ matrix.variant }} variant
-    uses: docker://{{ matrix.image }}
+    uses: Gefyra/ig-publisher-action@main
     with:
-      args: igpublisher -ig ig.ini
+      variant: ${{ matrix.variant }}
+      command: igpublisher
+      args: -ig ig.ini
 ```
 
 ## 🐳 Docker Usage
