@@ -22,7 +22,7 @@ inputs:
 
 runs:
   using: 'docker'
-  image: 'docker://ghcr.io/gefyra/ig-publisher-action:latest'
+  image: 'docker://ghcr.io/gefyra/ig-publisher:latest'
   args:
     - ${{ inputs.command }}
     - ${{ inputs.args }}

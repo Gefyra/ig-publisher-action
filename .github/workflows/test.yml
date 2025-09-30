@@ -33,7 +33,7 @@ jobs:
           if docker image inspect ig-publisher-test:latest >/dev/null 2>&1; then
             docker run --rm ig-publisher-test:latest which igpublisher
           else
-            docker run --rm ghcr.io/gefyra/ig-publisher-action:latest which igpublisher
+            docker run --rm ghcr.io/gefyra/ig-publisher:latest which igpublisher
           fi
 
       - name: Test SUSHI
@@ -41,7 +41,7 @@ jobs:
           if docker image inspect ig-publisher-test:latest >/dev/null 2>&1; then
             docker run --rm ig-publisher-test:latest sushi --help
           else
-            docker run --rm ghcr.io/gefyra/ig-publisher-action:latest sushi --help
+            docker run --rm ghcr.io/gefyra/ig-publisher:latest sushi --help
           fi
 
       - name: Test Java
@@ -49,7 +49,7 @@ jobs:
           if docker image inspect ig-publisher-test:latest >/dev/null 2>&1; then
             docker run --rm ig-publisher-test:latest java --version
           else
-            docker run --rm ghcr.io/gefyra/ig-publisher-action:latest java --version
+            docker run --rm ghcr.io/gefyra/ig-publisher:latest java --version
           fi
 
       - name: Test Node
@@ -57,5 +57,5 @@ jobs:
           if docker image inspect ig-publisher-test:latest >/dev/null 2>&1; then
             docker run --rm ig-publisher-test:latest node --version
           else
-            docker run --rm ghcr.io/gefyra/ig-publisher-action:latest node --version
+            docker run --rm ghcr.io/gefyra/ig-publisher:latest node --version
           fi

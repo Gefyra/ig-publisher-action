@@ -35,4 +35,4 @@ Description: "A test patient profile"
 EOF
 
 echo "Test setup created in test-ig/"
-echo "Use: docker run --rm -v \$(pwd):/github/workspace ghcr.io/gefyra/ig-publisher-action:latest igpublisher -ig ig.ini"
+echo "Use: docker run --rm -v \$(pwd):/github/workspace ghcr.io/gefyra/ig-publisher:latest igpublisher -ig ig.ini"

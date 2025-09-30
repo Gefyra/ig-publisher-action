@@ -14,7 +14,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: gefyra/ig-publisher-action
+  IMAGE_NAME: gefyra/ig-publisher
 
 jobs:
   check-ig-publisher-version:
@@ -157,16 +157,16 @@ jobs:
             
             ```bash
             # Pull & Quick Start
-            docker pull ghcr.io/${{ github.repository }}:${{ needs.check-ig-publisher-version.outputs.new_tag }}
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.check-ig-publisher-version.outputs.new_tag }}
             
             docker run --rm -v $(pwd):/github/workspace \
-              ghcr.io/${{ github.repository }}:${{ needs.check-ig-publisher-version.outputs.new_tag }} \
+              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.check-ig-publisher-version.outputs.new_tag }} \
               igpublisher -ig ig.ini
             ```
             
             ## 📦 Available Tags
-            - `ghcr.io/${{ github.repository }}:${{ needs.check-ig-publisher-version.outputs.new_tag }}`
-            - `ghcr.io/${{ github.repository }}:latest`
+            - `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.check-ig-publisher-version.outputs.new_tag }}`
+            - `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest`
             
             ## 🔧 Included Versions
             - **IG Publisher:** ${{ steps.tool-versions.outputs.ig_version }}

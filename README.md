@@ -2,13 +2,13 @@
 
 [![Docker Build](https://github.com/Gefyra/ig-publisher-action/actions/workflows/auto-release.yml/badge.svg)](https://github.com/Gefyra/ig-publisher-action/actions/workflows/auto-release.yml)
 [![Test Docker Build](https://github.com/Gefyra/ig-publisher-action/actions/workflows/test.yml/badge.svg)](https://github.com/Gefyra/ig-publisher-action/actions/workflows/test.yml)
-[![GitHub Container Registry](https://img.shields.io/badge/ghcr.io-ig--publisher--action-blue?logo=docker&logoColor=white)](https://github.com/Gefyra/ig-publisher-action/pkgs/container/ig-publisher-action)
+[![GitHub Container Registry](https://img.shields.io/badge/ghcr.io-ig--publisher-blue?logo=docker&logoColor=white)](https://github.com/Gefyra/ig-publisher-action/pkgs/container/ig-publisher)
 [![GitHub Release](https://img.shields.io/github/v/release/Gefyra/ig-publisher-action?logo=github&label=Latest%20Release)](https://github.com/Gefyra/ig-publisher-action/releases/latest)
 [![License](https://img.shields.io/github/license/Gefyra/ig-publisher-action?logo=opensource&label=License)](LICENSE)
 [![FHIR](https://img.shields.io/badge/FHIR-R4%2FR5-red?logo=hl7&logoColor=white)](https://hl7.org/fhir/)
 [![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-20-green?logo=node.js&logoColor=white)](https://nodejs.org/)
-[![Multi-Platform](https://img.shields.io/badge/Platform-AMD64%20%7C%20ARM64-lightgrey?logo=docker&logoColor=white)](https://github.com/Gefyra/ig-publisher-action/pkgs/container/ig-publisher-action)
+[![Multi-Platform](https://img.shields.io/badge/Platform-AMD64%20%7C%20ARM64-lightgrey?logo=docker&logoColor=white)](https://github.com/Gefyra/ig-publisher-action/pkgs/container/ig-publisher)
 
 This repository creates a Docker image and GitHub Action for the HL7 FHIR Implementation Guide Publisher with all necessary dependencies. Perfect for CI/CD pipelines and automated IG builds.
 
@@ -62,7 +62,7 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: ghcr.io/gefyra/ig-publisher-action:latest
+    container: ghcr.io/gefyra/ig-publisher:latest
     steps:
       - uses: actions/checkout@v4
       - run: sushi .
@@ -158,7 +158,7 @@ Complete pipeline with GitHub Pages deployment:
 # ✅ Good for multiple commands - Container job
 jobs:
   build:
-    container: ghcr.io/gefyra/ig-publisher-action:latest
+    container: ghcr.io/gefyra/ig-publisher:latest
     steps:
       - run: sushi .
       - run: igpublisher -ig ig.ini
@@ -194,10 +194,10 @@ For direct Docker usage without GitHub Actions:
 
 ```bash
 # Latest version
-docker run --rm -v $(pwd):/github/workspace ghcr.io/gefyra/ig-publisher-action:latest igpublisher [options]
+docker run --rm -v $(pwd):/github/workspace ghcr.io/gefyra/ig-publisher:latest igpublisher [options]
 
 # Specific version
-docker run --rm -v $(pwd):/github/workspace ghcr.io/gefyra/ig-publisher-action:v1.0.0 igpublisher [options]
+docker run --rm -v $(pwd):/github/workspace ghcr.io/gefyra/ig-publisher:v1.0.0 igpublisher [options]
 ```
 
 ### Local Build
@@ -213,17 +213,17 @@ docker run --rm -v $(pwd):/github/workspace ig-publisher igpublisher [options]
 
 ```bash
 # Build IG from current directory
-docker run --rm -v $(pwd):/github/workspace ghcr.io/gefyra/ig-publisher-action:latest igpublisher -ig ig.ini
+docker run --rm -v $(pwd):/github/workspace ghcr.io/gefyra/ig-publisher:latest igpublisher -ig ig.ini
 
 # With additional options
-docker run --rm -v $(pwd):/github/workspace ghcr.io/gefyra/ig-publisher-action:latest igpublisher -ig ig.ini -tx https://tx.fhir.org
+docker run --rm -v $(pwd):/github/workspace ghcr.io/gefyra/ig-publisher:latest igpublisher -ig ig.ini -tx https://tx.fhir.org
 ```
 
 #### Use SUSHI
 
 ```bash
 # Run SUSHI directly
-docker run --rm -v $(pwd):/github/workspace ghcr.io/gefyra/ig-publisher-action:latest sushi .
+docker run --rm -v $(pwd):/github/workspace ghcr.io/gefyra/ig-publisher:latest sushi .
 ```
 
 ## 🚀 Automated Releases
@@ -267,7 +267,7 @@ gh workflow run auto-release.yml -f force_release=true
 The image is configured with 4GB heap memory by default (`-Xmx4g`). If more memory is needed:
 
 ```bash
-docker run --rm -v $(pwd):/github/workspace ghcr.io/gefyra/ig-publisher-action:latest java -Xmx8g -jar /opt/ig/publisher.jar [options]
+docker run --rm -v $(pwd):/github/workspace ghcr.io/gefyra/ig-publisher:latest java -Xmx8g -jar /opt/ig/publisher.jar [options]
 ```
 
 ### Available Tags
