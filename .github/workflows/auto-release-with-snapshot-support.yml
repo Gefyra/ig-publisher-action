@@ -54,8 +54,8 @@ jobs:
           LATEST_PKG_VERSION=$(echo "$LATEST_PKG_RELEASE" | jq -r '.tag_name' | sed 's/^v//')
           
           # Get the latest standard image tag to use as base
-          STANDARD_RELEASES=$(curl -s https://api.github.com/repos/Gefyra/ig-publisher-action/releases)
-          BASE_IMAGE_TAG=$(echo "$STANDARD_RELEASES" | jq -r '[.[] | select(.tag_name | test("^v[0-9]+\\.[0-9]+\\.[0-9]+-ig[0-9]{8}$"))] | .[0].tag_name' || echo "latest")
+          # Always use latest to ensure we get the newest image with Jekyll
+          BASE_IMAGE_TAG="latest"
           
           echo "Latest IG Publisher version: $LATEST_IG_VERSION"
           echo "Latest FHIR Package Tool version: $LATEST_PKG_VERSION"
