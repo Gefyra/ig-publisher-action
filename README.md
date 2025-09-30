@@ -1,11 +1,12 @@
 # HL7 FHIR IG Publisher Action
 
 [![Docker Build](https://github.com/Gefyra/ig-publisher-action/actions/workflows/auto-release.yml/badge.svg)](https://github.com/Gefyra/ig-publisher-action/actions/workflows/auto-release.yml)
-[![Extended Build](https://github.com/Gefyra/ig-publisher-action/actions/workflows/auto-release-with-snapshot-support.yml/badge.svg)](https://github.com/Gefyra/ig-publisher-action/actions/workflows/auto-release-with-snapshot-support.yml)
+[![With Snapshot Support Build](https://github.com/Gefyra/ig-publisher-action/actions/workflows/auto-release-with-snapshot-support.yml/badge.svg)](https://github.com/Gefyra/ig-publisher-action/actions/workflows/auto-release-with-snapshot-support.yml)
 [![Test Docker Build](https://github.com/Gefyra/ig-publisher-action/actions/workflows/test.yml/badge.svg)](https://github.com/Gefyra/ig-publisher-action/actions/workflows/test.yml)
-[![GitHub Container Registry](https://img.shields.io/badge/ghcr.io-ig--publisher-blue?logo=docker&logoColor=white)](https://github.com/Gefyra/ig-publisher-action/pkgs/container/ig-publisher)
+[![Docker Standard](https://img.shields.io/badge/ghcr.io-ig--publisher-blue?logo=docker&logoColor=white)](https://github.com/Gefyra/ig-publisher-action/pkgs/container/ig-publisher)
+[![Docker With Snapshot Support](https://img.shields.io/badge/ghcr.io-ig--publisher--with--snapshot--support-darkblue?logo=docker&logoColor=white)](https://github.com/Gefyra/ig-publisher-action/pkgs/container/ig-publisher-with-snapshot-support)
 [![Latest Standard Release](https://img.shields.io/github/v/release/Gefyra/ig-publisher-action?logo=github&label=Standard%20Release&filter=*-ig*)](https://github.com/Gefyra/ig-publisher-action/releases/latest)
-[![Latest Extended Release](https://img.shields.io/github/v/release/Gefyra/ig-publisher-action?logo=github&label=Extended%20Release&filter=*-snapshot-support*)](https://github.com/Gefyra/ig-publisher-action/releases)
+[![Latest With Snapshot Support Release](https://img.shields.io/github/v/release/Gefyra/ig-publisher-action?logo=github&label=With%20Snapshot%20Support%20Release&filter=*-snapshot-support*)](https://github.com/Gefyra/ig-publisher-action/releases)
 [![License](https://img.shields.io/github/license/Gefyra/ig-publisher-action?logo=opensource&label=License)](LICENSE)
 [![FHIR](https://img.shields.io/badge/FHIR-R4%2FR5-red?logo=hl7&logoColor=white)](https://hl7.org/fhir/)
 [![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk&logoColor=white)](https://openjdk.org/)
@@ -309,7 +310,7 @@ docker run --rm -v $(pwd):/github/workspace \
   ghcr.io/gefyra/ig-publisher:latest \
   java -Xmx8g -jar /opt/ig/publisher.jar [options]
 
-# Extended version (4GB for IG Publisher, 2GB for Package Tool)  
+# With Snapshot Support version (4GB for IG Publisher, 2GB for Package Tool)  
 docker run --rm -v $(pwd):/github/workspace \
   ghcr.io/gefyra/ig-publisher-with-snapshot-support:latest \
   java -Xmx4g -jar /opt/fhir-pkg-tool/fhir-pkg-tool.jar [options]
