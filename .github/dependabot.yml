@@ -1,53 +1,37 @@
 version: 2
 updates:
+  # GitHub Actions dependencies - test with specific files first
   - package-ecosystem: "github-actions"
-    directory: "/"                  # <- Pflicht für Actions
+    directory: "/.github/workflows"
     schedule:
-      interval: "daily"             # oder "weekly"
+      interval: "daily"
       time: "06:00"
       timezone: "Europe/Berlin"
-    target-branch: "main"           # Falls euer Default-Branch anders heißt, anpassen
     open-pull-requests-limit: 5
-    labels: ["dependencies","github-actions"]
     commit-message:
       prefix: "chore"
       include: "scope"
+    labels: ["dependencies"]
+    # Test with only specific workflow files
+    allow:
+      - dependency-type: "direct"
+    # Limit scope for testing
+    target-branch: "main"
 
-
-# version: 2
-# updates:
-#   # GitHub Actions dependencies - test with specific files first
-#   - package-ecosystem: "github-actions"
-#     directory: "/.github/workflows"
-#     schedule:
-#       interval: "daily"
-#       time: "06:00"
-#       timezone: "Europe/Berlin"
-#     open-pull-requests-limit: 2
-#     commit-message:
-#       prefix: "chore"
-#       include: "scope"
-#     labels: ["dependencies","github-actions"]
-#     # Test with only specific workflow files
-#     allow:
-#       - dependency-type: "direct"
-#     # Limit scope for testing
-#     target-branch: "main"
-
-#   # Docker dependencies (base images) - working fine
-#   - package-ecosystem: "docker"
-#     directory: "/"
-#     schedule:
-#       interval: "weekly"
-#       day: "monday"
-#       time: "06:30"
-#       timezone: "Europe/Berlin"
-#     open-pull-requests-limit: 3
-#     commit-message:
-#       prefix: "chore"
-#       include: "scope"
-#     labels: ["dependencies","docker"]
-#     # don't upgrade major versions of eclipse-temurin (Java) automatically
-#     ignore:
-#       - dependency-name: "eclipse-temurin"
-#         update-types: ["version-update:semver-major"]
+  # Docker dependencies (base images) - working fine
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:30"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    labels: ["dependencies"]
+    # don't upgrade major versions of eclipse-temurin (Java) automatically
+    ignore:
+      - dependency-name: "eclipse-temurin"
+        update-types: ["version-update:semver-major"]
