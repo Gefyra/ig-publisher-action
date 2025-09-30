@@ -1,7 +1,7 @@
 # Extended version builds on the standard version
 FROM ghcr.io/gefyra/ig-publisher:latest
 
-# FHIR Package Tool (Extended version only)
+# FHIR Package Tool (With snapshot support version only)
 RUN mkdir -p /opt/fhir-pkg-tool \
  && curl -L "https://github.com/Gefyra/fhir-pkg-tool/releases/latest/download/fhir-pkg-tool.jar" \
     -o /opt/fhir-pkg-tool/fhir-pkg-tool.jar \
