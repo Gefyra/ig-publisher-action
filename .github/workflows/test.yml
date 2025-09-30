@@ -36,6 +36,10 @@ jobs:
         run: |
           docker run --rm ig-publisher-test:latest sushi --help
 
+      - name: Test Jekyll
+        run: |
+          docker run --rm ig-publisher-test:latest jekyll --version
+
       - name: Test Java
         run: |
           docker run --rm ig-publisher-test:latest java --version
@@ -87,6 +91,10 @@ jobs:
       - name: Test SUSHI
         run: |
           docker run --rm ig-publisher-with-snapshot-support-test:latest sushi --help
+
+      - name: Test Jekyll
+        run: |
+          docker run --rm ig-publisher-with-snapshot-support-test:latest jekyll --version
 
       - name: Test FHIR Package Tool
         run: |

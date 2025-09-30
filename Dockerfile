@@ -1,8 +1,9 @@
 FROM eclipse-temurin:21-jdk-jammy
 
-# Minimal tools for CI
+# Minimal tools for CI + Ruby and Jekyll dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
       curl ca-certificates unzip git xz-utils \
+      ruby ruby-dev build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 # Node 20 for SUSHI - Multi-arch binary installation
@@ -19,6 +20,9 @@ RUN set -eux; \
  && rm node.tar.xz \
  && ln -s /usr/local/bin/node /usr/local/bin/nodejs \
  && npm i -g fsh-sushi
+
+# Install Jekyll and dependencies
+RUN gem install jekyll bundler --no-document
 
 # IG Publisher
 RUN mkdir -p /opt/ig \
