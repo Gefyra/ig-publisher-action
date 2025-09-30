@@ -78,6 +78,7 @@ jobs:
     permissions:
       contents: write
       packages: write
+      actions: write
       
     steps:
       - name: Checkout repository
@@ -197,13 +198,13 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            await github.rest.actions.createWorkflowDispatch({
+            await github.rest.repos.createDispatchEvent({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              workflow_id: 'auto-release-with-snapshot-support.yml',
-              ref: 'main',
-              inputs: {
+              event_type: 'standard-image-updated',
+              client_payload: {
+                new_tag: '${{ needs.check-ig-publisher-version.outputs.new_tag }}',
                 trigger_reason: 'Standard image updated to ${{ needs.check-ig-publisher-version.outputs.new_tag }}'
               }
             });
-            console.log('🚀 Triggered with-snapshot-support build after standard image update');
+            console.log('🚀 Triggered with-snapshot-support build via repository dispatch');

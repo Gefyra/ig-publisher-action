@@ -15,6 +15,8 @@ on:
         description: 'Reason for triggering this build (for logging)'
         required: false
         type: string
+  repository_dispatch:
+    types: [standard-image-updated]
 
 env:
   REGISTRY: ghcr.io
@@ -67,14 +69,24 @@ jobs:
           
           # Check if triggered by standard pipeline
           TRIGGERED_BY_STANDARD="${{ github.event.inputs.trigger_reason }}"
+          TRIGGERED_BY_DISPATCH="${{ github.event.client_payload.trigger_reason }}"
+          
+          # Combine trigger reasons
+          if [ -n "$TRIGGERED_BY_DISPATCH" ]; then
+            TRIGGER_REASON="$TRIGGERED_BY_DISPATCH"
+          elif [ -n "$TRIGGERED_BY_STANDARD" ]; then
+            TRIGGER_REASON="$TRIGGERED_BY_STANDARD"
+          else
+            TRIGGER_REASON=""
+          fi
           
           # Release if:
           # 1. New FHIR Package Tool version available, OR
           # 2. Triggered by standard pipeline (new base image), OR  
           # 3. Force release requested
-          if [ "$LATEST_PKG_VERSION" != "$CURRENT_PKG_VERSION" ] || [ -n "$TRIGGERED_BY_STANDARD" ] || [ "${{ github.event.inputs.force_release }}" == "true" ]; then
-            if [ -n "$TRIGGERED_BY_STANDARD" ]; then
-              echo "🔄 Triggered by standard pipeline: $TRIGGERED_BY_STANDARD"
+          if [ "$LATEST_PKG_VERSION" != "$CURRENT_PKG_VERSION" ] || [ -n "$TRIGGER_REASON" ] || [ "${{ github.event.inputs.force_release }}" == "true" ]; then
+            if [ -n "$TRIGGER_REASON" ]; then
+              echo "🔄 Triggered by standard pipeline: $TRIGGER_REASON"
               REASON="base-image-update"
             elif [ "$LATEST_PKG_VERSION" != "$CURRENT_PKG_VERSION" ]; then
               echo "📦 New FHIR Package Tool version available: $LATEST_PKG_VERSION (current: $CURRENT_PKG_VERSION)"
@@ -198,7 +210,7 @@ jobs:
             ## 🚀 Automatic Release - IG Publisher with Snapshot Support
             
             **Release Trigger:** ${{ needs.check-versions.outputs.release_reason == 'base-image-update' && '🔄 Base image updated' || needs.check-versions.outputs.release_reason == 'pkg-tool-update' && '📦 FHIR Package Tool updated' || '🔨 Manual release' }}
-            ${{ github.event.inputs.trigger_reason && format('**Trigger Reason:** {0}', github.event.inputs.trigger_reason) || '' }}
+            ${{ github.event.inputs.trigger_reason && format('**Trigger Reason:** {0}', github.event.inputs.trigger_reason) || github.event.client_payload.trigger_reason && format('**Trigger Reason:** {0}', github.event.client_payload.trigger_reason) || '' }}
             
             **IG Publisher Version:** `${{ needs.check-versions.outputs.latest_ig_version }}`
             **FHIR Package Tool Version:** `${{ needs.check-versions.outputs.latest_pkg_version }}` (previously: `${{ needs.check-versions.outputs.current_version }}`)
