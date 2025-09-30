@@ -2,7 +2,7 @@ name: Auto-Release IG Publisher with Snapshot Support
 
 on:
   schedule:
-    # Check daily at 01:00 UTC for new versions (1 hour after standard)
+    # Check daily at 01:00 UTC for new FHIR Package Tool versions
     - cron: '0 1 * * *'
   workflow_dispatch:
     inputs:
@@ -11,6 +11,10 @@ on:
         required: false
         type: boolean
         default: false
+      trigger_reason:
+        description: 'Reason for triggering this build (for logging)'
+        required: false
+        type: string
 
 env:
   REGISTRY: ghcr.io
@@ -26,6 +30,7 @@ jobs:
       current_version: ${{ steps.version-check.outputs.current_version }}
       new_tag: ${{ steps.version-check.outputs.new_tag }}
       base_image_tag: ${{ steps.version-check.outputs.base_image_tag }}
+      release_reason: ${{ steps.version-check.outputs.release_reason }}
     permissions:
       contents: read
       
@@ -56,24 +61,43 @@ jobs:
           
           # Get current version from last snapshot-support release tag
           CURRENT_TAG=$(git describe --tags --abbrev=0 --match="*-snapshot-support*" 2>/dev/null || echo "v0.0.0-snapshot-support")
-          CURRENT_VERSION=$(echo "$CURRENT_TAG" | sed 's/^v//' | sed 's/-snapshot-support.*//')
+          CURRENT_PKG_VERSION=$(echo "$CURRENT_TAG" | sed 's/.*pkg-//' | sed 's/-snapshot-support.*//')
           
-            echo "Current snapshot-support version: $CURRENT_VERSION"          # Compare versions - release if either tool has a new version
-          if [ "$LATEST_IG_VERSION" != "$CURRENT_VERSION" ] || [ "${{ github.event.inputs.force_release }}" == "true" ]; then
-            echo "New version available or force release requested!"
-            NEW_TAG="v${LATEST_IG_VERSION}-snapshot-support-$(date +%Y%m%d)"
+          echo "Current FHIR Package Tool version: $CURRENT_PKG_VERSION"
+          
+          # Check if triggered by standard pipeline
+          TRIGGERED_BY_STANDARD="${{ github.event.inputs.trigger_reason }}"
+          
+          # Release if:
+          # 1. New FHIR Package Tool version available, OR
+          # 2. Triggered by standard pipeline (new base image), OR  
+          # 3. Force release requested
+          if [ "$LATEST_PKG_VERSION" != "$CURRENT_PKG_VERSION" ] || [ -n "$TRIGGERED_BY_STANDARD" ] || [ "${{ github.event.inputs.force_release }}" == "true" ]; then
+            if [ -n "$TRIGGERED_BY_STANDARD" ]; then
+              echo "🔄 Triggered by standard pipeline: $TRIGGERED_BY_STANDARD"
+              REASON="base-image-update"
+            elif [ "$LATEST_PKG_VERSION" != "$CURRENT_PKG_VERSION" ]; then
+              echo "📦 New FHIR Package Tool version available: $LATEST_PKG_VERSION (current: $CURRENT_PKG_VERSION)"
+              REASON="pkg-tool-update"
+            else
+              echo "🔨 Force release requested"
+              REASON="force"
+            fi
+            
+            NEW_TAG="v${LATEST_IG_VERSION}-pkg-${LATEST_PKG_VERSION}-snapshot-support-$(date +%Y%m%d)"
             
             # Check if this tag already exists
             if git tag -l | grep -q "^${NEW_TAG}$"; then
               echo "Tag $NEW_TAG already exists, adding time suffix"
-              NEW_TAG="v${LATEST_IG_VERSION}-snapshot-support-$(date +%Y%m%d-%H%M)"
+              NEW_TAG="v${LATEST_IG_VERSION}-pkg-${LATEST_PKG_VERSION}-snapshot-support-$(date +%Y%m%d-%H%M)"
             fi
             
             echo "new_version_available=true" >> $GITHUB_OUTPUT
             echo "latest_ig_version=$LATEST_IG_VERSION" >> $GITHUB_OUTPUT
             echo "latest_pkg_version=$LATEST_PKG_VERSION" >> $GITHUB_OUTPUT
-            echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            echo "current_version=$CURRENT_PKG_VERSION" >> $GITHUB_OUTPUT
             echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
+            echo "release_reason=$REASON" >> $GITHUB_OUTPUT
             echo "base_image_tag=$BASE_IMAGE_TAG" >> $GITHUB_OUTPUT
           else
             echo "No new version available"
@@ -173,8 +197,11 @@ jobs:
           body: |
             ## 🚀 Automatic Release - IG Publisher with Snapshot Support
             
-            **IG Publisher Version:** `${{ needs.check-versions.outputs.latest_ig_version }}` (previously: `${{ needs.check-versions.outputs.current_version }}`)
-            **FHIR Package Tool Version:** `${{ needs.check-versions.outputs.latest_pkg_version }}`
+            **Release Trigger:** ${{ needs.check-versions.outputs.release_reason == 'base-image-update' && '🔄 Base image updated' || needs.check-versions.outputs.release_reason == 'pkg-tool-update' && '📦 FHIR Package Tool updated' || '🔨 Manual release' }}
+            ${{ github.event.inputs.trigger_reason && format('**Trigger Reason:** {0}', github.event.inputs.trigger_reason) || '' }}
+            
+            **IG Publisher Version:** `${{ needs.check-versions.outputs.latest_ig_version }}`
+            **FHIR Package Tool Version:** `${{ needs.check-versions.outputs.latest_pkg_version }}` (previously: `${{ needs.check-versions.outputs.current_version }}`)
             **Base Image:** `ghcr.io/gefyra/ig-publisher:${{ needs.check-versions.outputs.base_image_tag }}`
             
             ## 🐳 Docker Image

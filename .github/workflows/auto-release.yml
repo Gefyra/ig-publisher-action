@@ -190,3 +190,20 @@ jobs:
         run: |
           echo "✅ Successfully created auto-release ${{ needs.check-ig-publisher-version.outputs.new_tag }}"
           echo "📦 IG Publisher updated from ${{ needs.check-ig-publisher-version.outputs.current_version }} to ${{ needs.check-ig-publisher-version.outputs.latest_version }}"
+
+      - name: Trigger With-Snapshot-Support Build
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'auto-release-with-snapshot-support.yml',
+              ref: 'main',
+              inputs: {
+                trigger_reason: 'Standard image updated to ${{ needs.check-ig-publisher-version.outputs.new_tag }}'
+              }
+            });
+            console.log('🚀 Triggered with-snapshot-support build after standard image update');
