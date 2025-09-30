@@ -1,0 +1,217 @@
+name: Auto-Release IG Publisher with Snapshot Support
+
+on:
+  schedule:
+    # Check daily at 01:00 UTC for new versions (1 hour after standard)
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+    inputs:
+      force_release:
+        description: 'Force release even if no new version found'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: gefyra/ig-publisher-with-snapshot-support
+
+jobs:
+  check-versions:
+    runs-on: ubuntu-latest
+    outputs:
+      new_version_available: ${{ steps.version-check.outputs.new_version_available }}
+      latest_ig_version: ${{ steps.version-check.outputs.latest_ig_version }}
+      latest_pkg_version: ${{ steps.version-check.outputs.latest_pkg_version }}
+      current_version: ${{ steps.version-check.outputs.current_version }}
+      new_tag: ${{ steps.version-check.outputs.new_tag }}
+      base_image_tag: ${{ steps.version-check.outputs.base_image_tag }}
+    permissions:
+      contents: read
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for new versions
+        id: version-check
+        run: |
+          # Get latest IG Publisher version from standard image
+          LATEST_IG_RELEASE=$(curl -s https://api.github.com/repos/HL7/fhir-ig-publisher/releases/latest)
+          LATEST_IG_VERSION=$(echo "$LATEST_IG_RELEASE" | jq -r '.tag_name' | sed 's/^v//')
+          
+          # Get latest FHIR Package Tool version
+          LATEST_PKG_RELEASE=$(curl -s https://api.github.com/repos/Gefyra/fhir-pkg-tool/releases/latest)
+          LATEST_PKG_VERSION=$(echo "$LATEST_PKG_RELEASE" | jq -r '.tag_name' | sed 's/^v//')
+          
+          # Get the latest standard image tag to use as base
+          STANDARD_RELEASES=$(curl -s https://api.github.com/repos/Gefyra/ig-publisher-action/releases)
+          BASE_IMAGE_TAG=$(echo "$STANDARD_RELEASES" | jq -r '[.[] | select(.tag_name | test("^v[0-9]+\\.[0-9]+\\.[0-9]+-ig[0-9]{8}$"))] | .[0].tag_name' || echo "latest")
+          
+          echo "Latest IG Publisher version: $LATEST_IG_VERSION"
+          echo "Latest FHIR Package Tool version: $LATEST_PKG_VERSION"
+          echo "Base image tag: $BASE_IMAGE_TAG"
+          
+          # Get current version from last snapshot-support release tag
+          CURRENT_TAG=$(git describe --tags --abbrev=0 --match="*-snapshot-support*" 2>/dev/null || echo "v0.0.0-snapshot-support")
+          CURRENT_VERSION=$(echo "$CURRENT_TAG" | sed 's/^v//' | sed 's/-snapshot-support.*//')
+          
+            echo "Current snapshot-support version: $CURRENT_VERSION"          # Compare versions - release if either tool has a new version
+          if [ "$LATEST_IG_VERSION" != "$CURRENT_VERSION" ] || [ "${{ github.event.inputs.force_release }}" == "true" ]; then
+            echo "New version available or force release requested!"
+            NEW_TAG="v${LATEST_IG_VERSION}-snapshot-support-$(date +%Y%m%d)"
+            
+            # Check if this tag already exists
+            if git tag -l | grep -q "^${NEW_TAG}$"; then
+              echo "Tag $NEW_TAG already exists, adding time suffix"
+              NEW_TAG="v${LATEST_IG_VERSION}-snapshot-support-$(date +%Y%m%d-%H%M)"
+            fi
+            
+            echo "new_version_available=true" >> $GITHUB_OUTPUT
+            echo "latest_ig_version=$LATEST_IG_VERSION" >> $GITHUB_OUTPUT
+            echo "latest_pkg_version=$LATEST_PKG_VERSION" >> $GITHUB_OUTPUT
+            echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
+            echo "base_image_tag=$BASE_IMAGE_TAG" >> $GITHUB_OUTPUT
+          else
+            echo "No new version available"
+            echo "new_version_available=false" >> $GITHUB_OUTPUT
+            echo "latest_ig_version=$LATEST_IG_VERSION" >> $GITHUB_OUTPUT
+            echo "latest_pkg_version=$LATEST_PKG_VERSION" >> $GITHUB_OUTPUT
+            echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            echo "base_image_tag=$BASE_IMAGE_TAG" >> $GITHUB_OUTPUT
+          fi
+
+  build-and-release:
+    runs-on: ubuntu-latest
+    needs: check-versions
+    if: needs.check-versions.outputs.new_version_available == 'true'
+    permissions:
+      contents: write
+      packages: write
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Dockerfile.with-snapshot-support with base image tag
+        run: |
+          if [ "${{ needs.check-versions.outputs.base_image_tag }}" != "latest" ]; then
+            sed -i "s|ghcr.io/gefyra/ig-publisher:latest|ghcr.io/gefyra/ig-publisher:${{ needs.check-versions.outputs.base_image_tag }}|" Dockerfile.with-snapshot-support
+          fi
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ needs.check-versions.outputs.new_tag }}
+            type=raw,value=latest
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.with-snapshot-support
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ needs.check-versions.outputs.new_tag }}" -m "Auto-release with Snapshot Support for IG Publisher v${{ needs.check-versions.outputs.latest_ig_version }} + PKG Tool v${{ needs.check-versions.outputs.latest_pkg_version }}"
+          git push origin "${{ needs.check-versions.outputs.new_tag }}"
+
+      - name: Get tool versions from built image
+        id: tool-versions
+        run: |
+          # Wait briefly until the image is available
+          sleep 30
+          
+          # Get versions from the freshly built image
+          IG_VERSION=$(docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.check-versions.outputs.new_tag }} java -jar /opt/ig/publisher.jar --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "${{ needs.check-versions.outputs.latest_ig_version }}")
+          JAVA_VERSION=$(docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.check-versions.outputs.new_tag }} java --version 2>&1 | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "21")
+          NODE_VERSION=$(docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.check-versions.outputs.new_tag }} node --version | sed 's/^v//')
+          SUSHI_VERSION=$(docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.check-versions.outputs.new_tag }} sushi --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "latest")
+          PKG_VERSION=$(docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.check-versions.outputs.new_tag }} fhir-pkg-tool --help 2>&1 | grep -o "fhir-pkg-tool" | head -1 && echo "${{ needs.check-versions.outputs.latest_pkg_version }}" || echo "unavailable")
+          
+          echo "ig_version=$IG_VERSION" >> $GITHUB_OUTPUT
+          echo "java_version=$JAVA_VERSION" >> $GITHUB_OUTPUT
+          echo "node_version=$NODE_VERSION" >> $GITHUB_OUTPUT
+          echo "sushi_version=$SUSHI_VERSION" >> $GITHUB_OUTPUT
+          echo "pkg_version=$PKG_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Get release timestamp
+        id: release-time
+        run: |
+          echo "timestamp=$(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.check-versions.outputs.new_tag }}
+          name: "IG Publisher with Snapshot Support ${{ needs.check-versions.outputs.new_tag }}"
+          generate_release_notes: false
+          body: |
+            ## 🚀 Automatic Release - IG Publisher with Snapshot Support
+            
+            **IG Publisher Version:** `${{ needs.check-versions.outputs.latest_ig_version }}` (previously: `${{ needs.check-versions.outputs.current_version }}`)
+            **FHIR Package Tool Version:** `${{ needs.check-versions.outputs.latest_pkg_version }}`
+            **Base Image:** `ghcr.io/gefyra/ig-publisher:${{ needs.check-versions.outputs.base_image_tag }}`
+            
+            ## 🐳 Docker Image
+            
+            ```bash
+            # Pull & Quick Start IG Publisher
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.check-versions.outputs.new_tag }}
+            
+            docker run --rm -v $(pwd):/github/workspace \
+              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.check-versions.outputs.new_tag }} \
+              igpublisher -ig ig.ini
+            
+            # FHIR Package Tool
+            docker run --rm -v $(pwd):/github/workspace \
+              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.check-versions.outputs.new_tag }} \
+              fhir-pkg-tool -p hl7.fhir.r4.core@4.0.1 -o ./packages
+            ```
+            
+            ## 📦 Available Tags
+            - `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.check-versions.outputs.new_tag }}`
+            - `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest`
+            
+            ## 🔧 Included Tools
+            - **IG Publisher:** ${{ steps.tool-versions.outputs.ig_version }}
+            - **FHIR Package Tool:** ${{ steps.tool-versions.outputs.pkg_version }}
+            - **Java:** ${{ steps.tool-versions.outputs.java_version }} (Eclipse Temurin)
+            - **Node.js:** ${{ steps.tool-versions.outputs.node_version }}
+            - **SUSHI:** ${{ steps.tool-versions.outputs.sushi_version }}
+            
+            ## 🏗️ Platforms
+            - `linux/amd64`
+            - `linux/arm64`
+            
+            ## 🔄 Auto-Release
+            This is the **version with snapshot support** including FHIR Package Tool.
+            Built on top of the standard IG Publisher image.
+            
+            **Release created:** ${{ steps.release-time.outputs.timestamp }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

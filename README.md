@@ -1,6 +1,7 @@
 # HL7 FHIR IG Publisher Action
 
 [![Docker Build](https://github.com/Gefyra/ig-publisher-action/actions/workflows/auto-release.yml/badge.svg)](https://github.com/Gefyra/ig-publisher-action/actions/workflows/auto-release.yml)
+[![Extended Build](https://github.com/Gefyra/ig-publisher-action/actions/workflows/auto-release-with-snapshot-support.yml/badge.svg)](https://github.com/Gefyra/ig-publisher-action/actions/workflows/auto-release-with-snapshot-support.yml)
 [![Test Docker Build](https://github.com/Gefyra/ig-publisher-action/actions/workflows/test.yml/badge.svg)](https://github.com/Gefyra/ig-publisher-action/actions/workflows/test.yml)
 [![GitHub Container Registry](https://img.shields.io/badge/ghcr.io-ig--publisher-blue?logo=docker&logoColor=white)](https://github.com/Gefyra/ig-publisher-action/pkgs/container/ig-publisher)
 [![GitHub Release](https://img.shields.io/github/v/release/Gefyra/ig-publisher-action?logo=github&label=Latest%20Release)](https://github.com/Gefyra/ig-publisher-action/releases/latest)
@@ -10,23 +11,28 @@
 [![Node.js](https://img.shields.io/badge/Node.js-20-green?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Multi-Platform](https://img.shields.io/badge/Platform-AMD64%20%7C%20ARM64-lightgrey?logo=docker&logoColor=white)](https://github.com/Gefyra/ig-publisher-action/pkgs/container/ig-publisher)
 
-This repository creates a Docker image and GitHub Action for the HL7 FHIR Implementation Guide Publisher with all necessary dependencies. Perfect for CI/CD pipelines and automated IG builds.
+A comprehensive GitHub Action for building FHIR Implementation Guides with the HL7 FHIR IG Publisher, SUSHI, and optional FHIR Package Tool support.
 
-## 🛠️ Included Tools
+## 📦 Two Variants Available
 
-- **HL7 FHIR IG Publisher** (latest version)
-- **SUSHI** (FSH to FHIR converter)
-- **Node.js 20**
+### 🔹 Standard Version
+- **HL7 FHIR IG Publisher** (latest)
+- **SUSHI** for FSH → FHIR conversion  
 - **Java 21** (Eclipse Temurin)
-- **Git, curl, unzip** for CI/CD workflows
+- **Node.js 20**
+- **Docker Image:** `ghcr.io/gefyra/ig-publisher:latest`
+
+### 🔹 With Snapshot Support Version  
+- Everything from Standard version
+- **+ FHIR Package Tool** for package management and snapshot generation
+- **Docker Image:** `ghcr.io/gefyra/ig-publisher-with-snapshot-support:latest`
+- **Built on top of:** Standard version (for efficient layer reuse)
 
 ## 🔄 GitHub Actions Integration
 
-This repository provides a ready-to-use GitHub Action for building FHIR Implementation Guides. Here are the recommended usage patterns:
+### Method 1: Standard GitHub Action (Recommended)
 
-### Method 1: GitHub Action (Recommended)
-
-The cleanest way to use this in your workflows:
+For basic IG building with IG Publisher and SUSHI:
 
 ```yaml
 name: Build IG
@@ -38,12 +44,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      # Standard version (IG Publisher + SUSHI)
       - name: Run IG Publisher
         uses: Gefyra/ig-publisher-action@main
         with:
           command: igpublisher
           args: -ig ig.ini
-      
+
+      # Build with SUSHI first
       - name: Run SUSHI
         uses: Gefyra/ig-publisher-action@main
         with:
@@ -51,190 +59,214 @@ jobs:
           args: .
 ```
 
-### Method 2: Container Job (Multiple Steps)
+### Method 2: GitHub Action with Snapshot Support
 
-For workflows with multiple IG-related commands:
+For workflows that need package management:
 
 ```yaml
-name: Build IG
+name: Build IG with Package Management
 on: [push, pull_request]
 
 jobs:
   build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      # With snapshot support (IG Publisher + SUSHI + FHIR Package Tool)
+      - name: Download FHIR Packages
+        uses: Gefyra/ig-publisher-action/with-snapshot-support@main
+        with:
+          command: fhir-pkg-tool
+          args: -p hl7.fhir.r4.core@4.0.1 -p hl7.fhir.us.core@6.1.0 -o ./packages
+
+      - name: Run SUSHI
+        uses: Gefyra/ig-publisher-action/with-snapshot-support@main
+        with:
+          command: sushi
+          args: .
+
+      - name: Run IG Publisher
+        uses: Gefyra/ig-publisher-action/with-snapshot-support@main
+        with:
+          command: igpublisher
+          args: -ig ig.ini
+```
+
+### Method 3: Container Jobs
+
+For workflows with multiple steps:
+
+```yaml
+jobs:
+  build-standard:
     runs-on: ubuntu-latest
     container: ghcr.io/gefyra/ig-publisher:latest
     steps:
       - uses: actions/checkout@v4
       - run: sushi .
       - run: igpublisher -ig ig.ini
-      - run: echo "All tools available directly!"
-```
 
-### Advanced Workflow with SUSHI
-
-```yaml
-name: FHIR IG Pipeline
-on: [push, pull_request]
-
-jobs:
-  build-ig:
+  build-with-snapshot-support:
     runs-on: ubuntu-latest
+    container: ghcr.io/gefyra/ig-publisher-with-snapshot-support:latest
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Run SUSHI (FSH → FHIR)
-        uses: Gefyra/ig-publisher-action@main
-        with:
-          command: sushi
-          args: .
-      
-      - name: Build IG
-        uses: Gefyra/ig-publisher-action@main
-        with:
-          command: igpublisher
-          args: -ig ig.ini -tx https://tx.fhir.org
-      
-      - name: Upload IG Output
-        uses: actions/upload-artifact@v4
-        with:
-          name: fhir-ig
-          path: output/
-```
-
-### Matrix Build (Multiple Versions)
-
-Test your IG against multiple IG Publisher versions:
-
-```yaml
-strategy:
-  matrix:
-    ig-version: ['latest', 'v1.6.24-ig20240929', 'v1.6.23-ig20240920']
-
-steps:
-  - name: Build with IG Publisher ${{ matrix.ig-version }}
-    uses: Gefyra/ig-publisher-action@main
-    with:
-      command: igpublisher
-      args: -ig ig.ini
-```
-
-### Publishing Results
-
-Complete pipeline with GitHub Pages deployment:
-
-```yaml
-- name: Build IG
-  uses: Gefyra/ig-publisher-action@main
-  with:
-    command: igpublisher
-    args: -ig ig.ini
-
-- name: Deploy to GitHub Pages
-  uses: peaceiris/actions-gh-pages@v3
-  with:
-    github_token: ${{ secrets.GITHUB_TOKEN }}
-    publish_dir: ./output
+      - run: fhir-pkg-tool -p hl7.fhir.r4.core@4.0.1 -o ./packages
+      - run: sushi .
+      - run: igpublisher -ig ig.ini
 ```
 
 ## 📚 GitHub Actions Best Practices
 
-### Method Comparison
-
-| Method | Performance | Use Case | Best For |
-|--------|-------------|----------|----------|
-| **GitHub Action** | ⭐⭐⭐⭐ | Clean interface | Published actions |
-| **Container Job** | ⭐⭐⭐ | Multiple steps | Complex workflows |
-
-### Recommended Usage
+### Complete Workflow with Artifact Publishing
 
 ```yaml
-# ✅ Best Practice - Clean GitHub Action interface
-- name: Build IG
-  uses: Gefyra/ig-publisher-action@main
-  with:
-    command: igpublisher
-    args: -ig ig.ini
+name: Build and Publish IG
+on:
+  push:
+    branches: [main]
 
-# ✅ Good for multiple commands - Container job
 jobs:
   build:
-    container: ghcr.io/gefyra/ig-publisher:latest
+    runs-on: ubuntu-latest
     steps:
-      - run: sushi .
-      - run: igpublisher -ig ig.ini
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Dependencies
+        uses: Gefyra/ig-publisher-action/with-snapshot-support@main
+        with:
+          command: fhir-pkg-tool
+          args: --sushi-deps-file sushi-config.yaml -o ./packages
+
+      - name: Run SUSHI
+        uses: Gefyra/ig-publisher-action/with-snapshot-support@main
+        with:
+          command: sushi
+          args: .
+
+      - name: Build IG
+        uses: Gefyra/ig-publisher-action/with-snapshot-support@main
+        with:
+          command: igpublisher
+          args: -ig ig.ini -tx https://tx.fhir.org
+
+      - name: Upload Build Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: fhir-ig
+          path: output/
+
+      - name: Deploy to GitHub Pages
+        if: github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./output
 ```
 
-### Error Handling
+### Matrix Build for Both Variants
 
 ```yaml
-- name: Build IG with error handling
-  uses: Gefyra/ig-publisher-action@main
-  with:
-    command: igpublisher
-    args: -ig ig.ini
-  continue-on-error: false
+strategy:
+  matrix:
+    include:
+      - variant: standard
+        image: ghcr.io/gefyra/ig-publisher:latest
+      - variant: with-snapshot-support  
+        image: ghcr.io/gefyra/ig-publisher-with-snapshot-support:latest
+
+steps:
+  - name: Build with ${{ matrix.variant }} variant
+    uses: docker://{{ matrix.image }}
+    with:
+      args: igpublisher -ig ig.ini
 ```
 
-### Version Pinning
+## 🐳 Docker Usage
 
-```yaml
-# Pin to specific version for reproducible builds
-- name: Build with pinned version
-  uses: Gefyra/ig-publisher-action@v1.6.24-ig20240929
-  with:
-    command: igpublisher
-    args: -ig ig.ini
-```
-
-## 🚀 Docker Usage
-
-For direct Docker usage without GitHub Actions:
-
-### GitHub Container Registry
+### Standard Version
 
 ```bash
-# Latest version
-docker run --rm -v $(pwd):/github/workspace ghcr.io/gefyra/ig-publisher:latest igpublisher [options]
+# Pull latest standard version
+docker pull ghcr.io/gefyra/ig-publisher:latest
 
-# Specific version
-docker run --rm -v $(pwd):/github/workspace ghcr.io/gefyra/ig-publisher:v1.0.0 igpublisher [options]
+# Build Implementation Guide
+docker run --rm -v $(pwd):/github/workspace \
+  ghcr.io/gefyra/ig-publisher:latest \
+  igpublisher -ig ig.ini
+
+# Run SUSHI
+docker run --rm -v $(pwd):/github/workspace \
+  ghcr.io/gefyra/ig-publisher:latest \
+  sushi .
 ```
 
-### Local Build
+### With Snapshot Support Version
 
 ```bash
-docker build -t ig-publisher .
-docker run --rm -v $(pwd):/github/workspace ig-publisher igpublisher [options]
+# Pull latest with snapshot support version  
+docker pull ghcr.io/gefyra/ig-publisher-with-snapshot-support:latest
+
+# Use FHIR Package Tool
+docker run --rm -v $(pwd):/github/workspace \
+  ghcr.io/gefyra/ig-publisher-with-snapshot-support:latest \
+  fhir-pkg-tool -p hl7.fhir.r4.core@4.0.1 -o ./packages
+
+# Download packages from sushi-config.yaml
+docker run --rm -v $(pwd):/github/workspace \
+  ghcr.io/gefyra/ig-publisher-with-snapshot-support:latest \
+  fhir-pkg-tool --sushi-deps-file sushi-config.yaml --force-snapshot -o ./packages
+
+# Build IG (same as standard)
+docker run --rm -v $(pwd):/github/workspace \
+  ghcr.io/gefyra/ig-publisher-with-snapshot-support:latest \
+  igpublisher -ig ig.ini
 ```
 
-### Examples
+## 🚀 FHIR Package Tool Features (With Snapshot Support Version Only)
 
-#### Build Implementation Guide
+The **With Snapshot Support Version** includes the powerful FHIR Package Tool with these capabilities:
+
+- **📦 Multiple Package Support**: Download and process multiple FHIR packages simultaneously
+- **🔄 Dependency Resolution**: Automatic recursive dependency resolution from package manifests  
+- **📋 Sushi Integration**: Direct integration with `sushi-config.yaml` files for dependency extraction
+- **🔧 Snapshot Generation**: Automatic StructureDefinition snapshot generation with force rebuild options
+- **🌐 Multi-Version Support**: Support for FHIR R4, R4B, R5 with automatic context detection
+- **📁 Local Profiles**: Process local StructureDefinition files with snapshot generation
+- **🎯 Flexible Output**: Organized output structure with package-specific folders
+
+### FHIR Package Tool Examples
 
 ```bash
-# Build IG from current directory
-docker run --rm -v $(pwd):/github/workspace ghcr.io/gefyra/ig-publisher:latest igpublisher -ig ig.ini
+# Download specific packages with snapshots
+docker run --rm -v $(pwd):/github/workspace \
+  ghcr.io/gefyra/ig-publisher-with-snapshot-support:latest \
+  fhir-pkg-tool -p hl7.fhir.us.core@6.1.0 -p hl7.fhir.r4.core@4.0.1 --force-snapshot -o ./packages
 
-# With additional options
-docker run --rm -v $(pwd):/github/workspace ghcr.io/gefyra/ig-publisher:latest igpublisher -ig ig.ini -tx https://tx.fhir.org
-```
+# Process dependencies from sushi-config.yaml
+docker run --rm -v $(pwd):/github/workspace \
+  ghcr.io/gefyra/ig-publisher-with-snapshot-support:latest \
+  fhir-pkg-tool --sushi-deps-file sushi-config.yaml --force-snapshot -o ./packages
 
-#### Use SUSHI
-
-```bash
-# Run SUSHI directly
-docker run --rm -v $(pwd):/github/workspace ghcr.io/gefyra/ig-publisher:latest sushi .
+# Process local profiles
+docker run --rm -v $(pwd):/github/workspace \
+  ghcr.io/gefyra/ig-publisher-with-snapshot-support:latest \
+  fhir-pkg-tool -p hl7.fhir.r4.core@4.0.1 --profiles-dir ./input/resources --force-snapshot -o ./packages
 ```
 
 ## 🚀 Automated Releases
 
-### 🔄 Auto-Release on New IG Publisher Versions
-The repository automatically monitors new IG Publisher releases and creates corresponding Docker images:
+### 🔄 Auto-Release System
+Both variants automatically monitor for new versions and create corresponding Docker images:
 
-- **Daily Check** at 00:00 UTC
-- **Automatic Release** on new IG Publisher versions
-- **Tag Format:** `v{ig-publisher-version}-ig{date}`
-- **Example:** `v1.6.24-ig20240929`
+- **Standard:** Daily check at 00:00 UTC for new IG Publisher versions
+- **With Snapshot Support:** Daily check at 01:00 UTC for new IG Publisher + FHIR Package Tool versions  
+- **Automatic Release:** On new tool versions
+- **Tag Format:** 
+  - Standard: `v{ig-publisher-version}-ig{date}`  
+  - With Snapshot Support: `v{ig-publisher-version}-snapshot-support-{date}`
 
 ### 🛡️ Backup Monitoring
 Weekly status check (Mondays) as backup:
@@ -246,51 +278,73 @@ Weekly status check (Mondays) as backup:
 New releases can also be created manually:
 
 ```bash
-# Manual tag for specific version
-git tag v1.0.0-custom
-git push origin v1.0.0-custom
-
-# Or run auto-release workflow manually
+# Manual workflow trigger with force release
 gh workflow run auto-release.yml -f force_release=true
+gh workflow run auto-release-with-snapshot-support.yml -f force_release=true
 ```
-
-**Release Process:**
-1. Build Docker image for AMD64 and ARM64
-2. Push to GitHub Container Registry  
-3. Automatic release notes with version info
-4. Tool versions are extracted from the image
 
 ## ⚙️ Configuration
 
 ### Java Memory Configuration
 
-The image is configured with 4GB heap memory by default (`-Xmx4g`). If more memory is needed:
+Both images are configured with optimized memory settings:
 
 ```bash
-docker run --rm -v $(pwd):/github/workspace ghcr.io/gefyra/ig-publisher:latest java -Xmx8g -jar /opt/ig/publisher.jar [options]
+# Standard version (4GB for IG Publisher)
+docker run --rm -v $(pwd):/github/workspace \
+  ghcr.io/gefyra/ig-publisher:latest \
+  java -Xmx8g -jar /opt/ig/publisher.jar [options]
+
+# Extended version (4GB for IG Publisher, 2GB for Package Tool)  
+docker run --rm -v $(pwd):/github/workspace \
+  ghcr.io/gefyra/ig-publisher-with-snapshot-support:latest \
+  java -Xmx4g -jar /opt/fhir-pkg-tool/fhir-pkg-tool.jar [options]
 ```
 
 ### Available Tags
 
-- `latest` - Always the newest IG Publisher version
-- `v{version}-ig{date}` - Specific IG Publisher versions
-- `v{version}-custom` - Manual releases
+#### Standard Version
+- `ghcr.io/gefyra/ig-publisher:latest` - Always the newest IG Publisher version
+- `ghcr.io/gefyra/ig-publisher:v{version}-ig{date}` - Specific IG Publisher versions
+
+#### With Snapshot Support Version  
+- `ghcr.io/gefyra/ig-publisher-with-snapshot-support:latest` - Always the newest versions
+- `ghcr.io/gefyra/ig-publisher-with-snapshot-support:v{version}-snapshot-support-{date}` - Specific versions
 
 ## 🔧 Development
 
 ### Local Testing
 
 ```bash
-# Build image
+# Build standard image
 docker build -t ig-publisher-test .
 
-# Test
+# Build with snapshot support image  
+docker build -f Dockerfile.with-snapshot-support -t ig-publisher-with-snapshot-support-test .
+
+# Test standard
 docker run --rm -v $(pwd):/github/workspace ig-publisher-test igpublisher --help
+
+# Test with snapshot support
+docker run --rm -v $(pwd):/github/workspace ig-publisher-with-snapshot-support-test fhir-pkg-tool --help
 ```
 
 ### Multi-Platform Build
 
 ```bash
 docker buildx create --name multiarch --use
+
+# Standard
 docker buildx build --platform linux/amd64,linux/arm64 -t ig-publisher --push .
+
+# With snapshot support  
+docker buildx build --platform linux/amd64,linux/arm64 -f Dockerfile.with-snapshot-support -t ig-publisher-with-snapshot-support --push .
 ```
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

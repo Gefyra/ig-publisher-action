@@ -1,4 +1,4 @@
-name: Test Docker Build
+name: Test Docker Images
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  test-build:
+  test-standard:
     runs-on: ubuntu-latest
     
     steps:
@@ -17,10 +17,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker image
+      - name: Build standard Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: ./Dockerfile
           push: false
           tags: ig-publisher-test:latest
           load: true
@@ -29,33 +30,56 @@ jobs:
 
       - name: Test IG Publisher
         run: |
-          # Test if igpublisher command exists
-          if docker image inspect ig-publisher-test:latest >/dev/null 2>&1; then
-            docker run --rm ig-publisher-test:latest which igpublisher
-          else
-            docker run --rm ghcr.io/gefyra/ig-publisher:latest which igpublisher
-          fi
+          docker run --rm ig-publisher-test:latest which igpublisher
 
       - name: Test SUSHI
         run: |
-          if docker image inspect ig-publisher-test:latest >/dev/null 2>&1; then
-            docker run --rm ig-publisher-test:latest sushi --help
-          else
-            docker run --rm ghcr.io/gefyra/ig-publisher:latest sushi --help
-          fi
+          docker run --rm ig-publisher-test:latest sushi --help
 
       - name: Test Java
         run: |
-          if docker image inspect ig-publisher-test:latest >/dev/null 2>&1; then
-            docker run --rm ig-publisher-test:latest java --version
-          else
-            docker run --rm ghcr.io/gefyra/ig-publisher:latest java --version
-          fi
+          docker run --rm ig-publisher-test:latest java --version
 
       - name: Test Node
         run: |
-          if docker image inspect ig-publisher-test:latest >/dev/null 2>&1; then
-            docker run --rm ig-publisher-test:latest node --version
-          else
-            docker run --rm ghcr.io/gefyra/ig-publisher:latest node --version
-          fi
+          docker run --rm ig-publisher-test:latest node --version
+
+  test-with-snapshot-support:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build snapshot support Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.with-snapshot-support
+          push: false
+          tags: ig-publisher-with-snapshot-support-test:latest
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test IG Publisher
+        run: |
+          docker run --rm ig-publisher-with-snapshot-support-test:latest which igpublisher
+
+      - name: Test SUSHI
+        run: |
+          docker run --rm ig-publisher-with-snapshot-support-test:latest sushi --help
+
+      - name: Test FHIR Package Tool
+        run: |
+          docker run --rm ig-publisher-with-snapshot-support-test:latest fhir-pkg-tool -p hl7.fhir.r4.core@4.0.1 --skip-deps -o /tmp/test
+
+      - name: Test Java
+        run: |
+          docker run --rm ig-publisher-with-snapshot-support-test:latest java --version
+
+      - name: Test Node
+        run: |
+          docker run --rm ig-publisher-with-snapshot-support-test:latest node --version

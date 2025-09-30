@@ -1,4 +1,4 @@
-name: Auto-Release on New IG Publisher
+name: Auto-Release Standard IG Publisher
 
 on:
   schedule:
