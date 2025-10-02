@@ -59,8 +59,21 @@ runs:
         # Show latest available release for reference
         echo ""
         echo "📦 Latest Release Reference:"
-        LATEST_RELEASE=$(curl -s https://api.github.com/repos/Gefyra/ig-publisher-action/releases | jq -r --arg filter "$RELEASE_FILTER" '[.[] | select(.tag_name | test($filter))] | .[0].tag_name // "Unable to detect"')
-        echo "   Latest Release Tag: $LATEST_RELEASE"
+        if command -v jq >/dev/null 2>&1; then
+          LATEST_RELEASE=$(curl -s https://api.github.com/repos/Gefyra/ig-publisher-action/releases | jq -r --arg filter "$RELEASE_FILTER" '[.[] | select(.tag_name | test($filter))] | .[0].tag_name // "Unable to detect"')
+          echo "   Latest Release Tag: $LATEST_RELEASE"
+        else
+          # Fallback without jq - get first matching release
+          if [ "$RELEASE_FILTER" == "snapshot-support" ]; then
+            LATEST_RELEASE=$(curl -s https://api.github.com/repos/Gefyra/ig-publisher-action/releases | grep -o '"tag_name": "[^"]*snapshot-support[^"]*"' | head -1 | sed 's/"tag_name": "//; s/"//')
+          else
+            LATEST_RELEASE=$(curl -s https://api.github.com/repos/Gefyra/ig-publisher-action/releases | grep -o '"tag_name": "[^"]*-ig[0-9][^"]*"' | head -1 | sed 's/"tag_name": "//; s/"//')
+          fi
+          if [ -z "$LATEST_RELEASE" ]; then
+            LATEST_RELEASE="Unable to detect (no jq available)"
+          fi
+          echo "   Latest Release Tag: $LATEST_RELEASE"
+        fi
         echo "   Note: Action uses ':latest' Docker tag, which may differ from latest release"
         
         # Show tool versions if possible
