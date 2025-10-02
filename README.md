@@ -48,14 +48,14 @@ jobs:
       
       # Build with SUSHI first (FSH → FHIR conversion)
       - name: Run SUSHI
-        uses: Gefyra/ig-publisher-action@main
+        uses: Gefyra/ig-publisher-action@v1
         with:
           command: sushi
           args: .
 
       # Then run IG Publisher
       - name: Run IG Publisher
-        uses: Gefyra/ig-publisher-action@main
+        uses: Gefyra/ig-publisher-action@v1
         with:
           command: igpublisher
           args: -ig ig.ini
@@ -77,21 +77,21 @@ jobs:
       
       # With snapshot support variant
       - name: Download FHIR Packages
-        uses: Gefyra/ig-publisher-action@main
+        uses: Gefyra/ig-publisher-action@v1
         with:
           variant: with-snapshot-support
           command: fhir-pkg-tool
           args: -p hl7.fhir.r4.core@4.0.1 -p hl7.fhir.us.core@6.1.0 -o ./packages
 
       - name: Run SUSHI  
-        uses: Gefyra/ig-publisher-action@main
+        uses: Gefyra/ig-publisher-action@v1
         with:
           variant: with-snapshot-support
           command: sushi
           args: .
 
       - name: Run IG Publisher
-        uses: Gefyra/ig-publisher-action@main
+        uses: Gefyra/ig-publisher-action@v1
         with:
           variant: with-snapshot-support
           command: igpublisher
@@ -140,21 +140,21 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download Dependencies
-        uses: Gefyra/ig-publisher-action@main
+        uses: Gefyra/ig-publisher-action@v1
         with:
           variant: with-snapshot-support
           command: fhir-pkg-tool
           args: --sushi-deps-file sushi-config.yaml -o ./packages
 
       - name: Run SUSHI
-        uses: Gefyra/ig-publisher-action@main
+        uses: Gefyra/ig-publisher-action@v1
         with:
           variant: with-snapshot-support
           command: sushi
           args: .
 
       - name: Build IG
-        uses: Gefyra/ig-publisher-action@main
+        uses: Gefyra/ig-publisher-action@v1
         with:
           variant: with-snapshot-support
           command: igpublisher
@@ -187,7 +187,7 @@ strategy:
 
 steps:
   - name: Build with ${{ matrix.variant }} variant
-    uses: Gefyra/ig-publisher-action@main
+    uses: Gefyra/ig-publisher-action@v1
     with:
       variant: ${{ matrix.variant }}
       command: igpublisher
