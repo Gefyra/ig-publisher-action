@@ -1,0 +1,103 @@
+name: Release GitHub Action
+
+on:
+  push:
+    branches: [ main ]
+    paths: 
+      - 'action.yml'
+      - '.github/workflows/release-action.yml'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v1.2.0)'
+        required: true
+        type: string
+
+jobs:
+  release-action:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event.inputs.version }}" != "" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            # Auto-increment patch version
+            LATEST_TAG=$(git describe --tags --abbrev=0 --match="v*.*.*" 2>/dev/null || echo "v1.0.0")
+            MAJOR=$(echo $LATEST_TAG | cut -d. -f1 | sed 's/v//')
+            MINOR=$(echo $LATEST_TAG | cut -d. -f2)
+            PATCH=$(echo $LATEST_TAG | cut -d. -f3)
+            NEW_PATCH=$((PATCH + 1))
+            VERSION="v${MAJOR}.${MINOR}.${NEW_PATCH}"
+          fi
+          
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "major_version=$(echo $VERSION | cut -d. -f1)" >> $GITHUB_OUTPUT
+          echo "Releasing version: $VERSION"
+
+      - name: Check if version exists
+        run: |
+          if git tag -l | grep -q "^${{ steps.version.outputs.version }}$"; then
+            echo "❌ Version ${{ steps.version.outputs.version }} already exists!"
+            exit 1
+          fi
+
+      - name: Create and push tags
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          MAJOR_VERSION=${{ steps.version.outputs.major_version }}
+          
+          # Create version tag
+          git tag $VERSION
+          
+          # Update/create major version tag (v1, v2, etc.)
+          git tag -d $MAJOR_VERSION 2>/dev/null || true
+          git tag $MAJOR_VERSION
+          
+          # Push tags
+          git push origin $VERSION
+          git push origin $MAJOR_VERSION --force
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: "GitHub Action ${{ steps.version.outputs.version }}"
+          generate_release_notes: true
+          body: |
+            ## 🚀 GitHub Action Release ${{ steps.version.outputs.version }}
+            
+            ### 📦 Usage
+            
+            ```yaml
+            - name: Run IG Publisher
+              uses: Gefyra/ig-publisher-action@${{ steps.version.outputs.major_version }}
+              with:
+                variant: standard  # or 'with-snapshot-support'
+                command: igpublisher
+                args: -ig ig.ini
+            ```
+            
+            ### 🔧 Available Variants
+            - **Standard**: IG Publisher + SUSHI + Jekyll
+            - **With Snapshot Support**: Standard + FHIR Package Tool
+            
+            ### 📋 Changes
+            See the auto-generated release notes below for detailed changes.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify success
+        run: |
+          echo "✅ Successfully released GitHub Action ${{ steps.version.outputs.version }}"
+          echo "🏷️ Major version tag: ${{ steps.version.outputs.major_version }}"
+          echo "📖 Users can now use: Gefyra/ig-publisher-action@${{ steps.version.outputs.major_version }}"

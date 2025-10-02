@@ -27,6 +27,54 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    - name: Show image information
+      shell: bash
+      run: |
+        if [ "${{ inputs.variant }}" == "with-snapshot-support" ]; then
+          IMAGE="ghcr.io/gefyra/ig-publisher-with-snapshot-support:latest"
+          echo "🐳 Using: IG Publisher with Snapshot Support"
+          RELEASE_FILTER="snapshot-support"
+        else
+          IMAGE="ghcr.io/gefyra/ig-publisher:latest"
+          echo "🐳 Using: IG Publisher (Standard)"
+          RELEASE_FILTER="ig[0-9]"
+        fi
+        
+        echo "📦 Image: $IMAGE"
+        echo "🔧 Command: ${{ inputs.command }} ${{ inputs.args }}"
+        
+        # Get image digest/info to show what's actually being used
+        echo "📋 Image Information:"
+        if command -v docker >/dev/null 2>&1; then
+          # Get the actual image digest being used
+          IMAGE_DIGEST=$(docker inspect $IMAGE --format='{{index .RepoDigests 0}}' 2>/dev/null | head -1 || echo "Not available")
+          echo "   Using Image: $IMAGE"
+          echo "   Image Digest: $IMAGE_DIGEST"
+          
+          # Get image creation date
+          IMAGE_CREATED=$(docker inspect $IMAGE --format='{{.Created}}' 2>/dev/null | head -1 | cut -c1-19 || echo "Unknown")
+          echo "   Image Created: $IMAGE_CREATED"
+        fi
+        
+        # Show latest available release for reference
+        echo ""
+        echo "📦 Latest Release Reference:"
+        LATEST_RELEASE=$(curl -s https://api.github.com/repos/Gefyra/ig-publisher-action/releases | jq -r --arg filter "$RELEASE_FILTER" '[.[] | select(.tag_name | test($filter))] | .[0].tag_name // "Unable to detect"')
+        echo "   Latest Release Tag: $LATEST_RELEASE"
+        echo "   Note: Action uses ':latest' Docker tag, which may differ from latest release"
+        
+        # Show tool versions if possible
+        if command -v docker >/dev/null 2>&1; then
+          echo "� Tool Versions:"
+          docker run --rm $IMAGE java --version 2>/dev/null | head -1 | sed 's/^/   Java: /' || echo "   Java: Unable to detect"
+          docker run --rm $IMAGE node --version 2>/dev/null | sed 's/^/   Node.js: /' || echo "   Node.js: Unable to detect"
+          docker run --rm $IMAGE sushi --version 2>/dev/null | head -1 | sed 's/^/   SUSHI: /' || echo "   SUSHI: Unable to detect"
+          if [ "${{ inputs.variant }}" == "with-snapshot-support" ]; then
+            docker run --rm $IMAGE fhir-pkg-tool --version 2>/dev/null | head -1 | sed 's/^/   FHIR Package Tool: /' || echo "   FHIR Package Tool: Unable to detect"
+          fi
+          docker run --rm $IMAGE jekyll --version 2>/dev/null | sed 's/^/   Jekyll: /' || echo "   Jekyll: Unable to detect"
+        fi
+        
     - name: Run with standard variant
       if: inputs.variant == 'standard'
       uses: docker://ghcr.io/gefyra/ig-publisher:latest
