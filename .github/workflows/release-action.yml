@@ -31,18 +31,26 @@ jobs:
           if [ "${{ github.event.inputs.version }}" != "" ]; then
             VERSION="${{ github.event.inputs.version }}"
           else
-            # Auto-increment patch version
-            LATEST_TAG=$(git describe --tags --abbrev=0 --match="v*.*.*" 2>/dev/null || echo "v1.0.0")
-            MAJOR=$(echo $LATEST_TAG | cut -d. -f1 | sed 's/v//')
-            MINOR=$(echo $LATEST_TAG | cut -d. -f2)
-            PATCH=$(echo $LATEST_TAG | cut -d. -f3)
-            NEW_PATCH=$((PATCH + 1))
-            VERSION="v${MAJOR}.${MINOR}.${NEW_PATCH}"
+            # Auto-increment patch version for Action releases (independent of IG Publisher)
+            # Only look for pure semantic version tags (v1.0.0, v1.0.1, etc.)
+            LATEST_ACTION_TAG=$(git tag -l | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1 || echo "")
+            
+            if [ -z "$LATEST_ACTION_TAG" ]; then
+              # No action tags found, start with v1.0.0
+              VERSION="v1.0.0"
+            else
+              # Increment patch version
+              MAJOR=$(echo $LATEST_ACTION_TAG | cut -d. -f1 | sed 's/v//')
+              MINOR=$(echo $LATEST_ACTION_TAG | cut -d. -f2)
+              PATCH=$(echo $LATEST_ACTION_TAG | cut -d. -f3)
+              NEW_PATCH=$((PATCH + 1))
+              VERSION="v${MAJOR}.${MINOR}.${NEW_PATCH}"
+            fi
           fi
           
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "major_version=$(echo $VERSION | cut -d. -f1)" >> $GITHUB_OUTPUT
-          echo "Releasing version: $VERSION"
+          echo "Releasing Action version: $VERSION (independent of IG Publisher version)"
 
       - name: Check if version exists
         run: |
