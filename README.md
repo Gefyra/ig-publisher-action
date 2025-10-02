@@ -109,6 +109,16 @@ jobs:
     container: ghcr.io/gefyra/ig-publisher:latest
     steps:
       - uses: actions/checkout@v4
+      
+      # Display tool versions for visibility
+      - name: Show Tool Versions
+        run: |
+          echo "=== Docker Image & Tool Versions ==="
+          echo "Java: $(java -version 2>&1 | head -1)"
+          echo "Node.js: $(node --version)"
+          echo "SUSHI: $(sushi --version 2>/dev/null || echo 'Version check failed')"
+          echo "IG Publisher: $(java -jar /opt/ig/publisher.jar --version 2>/dev/null | head -1 || echo 'Built-in latest')"
+          
       - run: sushi .
       - run: igpublisher -ig ig.ini
 
@@ -117,10 +127,59 @@ jobs:
     container: ghcr.io/gefyra/ig-publisher-with-snapshot-support:latest
     steps:
       - uses: actions/checkout@v4
+      
+      # Display tool versions for visibility
+      - name: Show Tool Versions  
+        run: |
+          echo "=== Docker Image & Tool Versions ==="
+          echo "Java: $(java -version 2>&1 | head -1)"
+          echo "Node.js: $(node --version)"
+          echo "SUSHI: $(sushi --version 2>/dev/null || echo 'Version check failed')"
+          echo "IG Publisher: $(java -jar /opt/ig/publisher.jar --version 2>/dev/null | head -1 || echo 'Built-in latest')"
+          echo "FHIR Package Tool: $(java -jar /opt/fhir-pkg-tool/fhir-pkg-tool.jar --version 2>/dev/null | head -1 || echo 'Built-in latest')"
+          
       - run: fhir-pkg-tool -p hl7.fhir.r4.core@4.0.1 -o ./packages
       - run: sushi .
       - run: igpublisher -ig ig.ini
 ```
+
+### Method 4: Hybrid Approach (Container + Version Display)
+
+For container jobs with explicit version information - best of both worlds:
+
+```yaml
+jobs:
+  build-with-versions:
+    runs-on: ubuntu-latest
+    container: ghcr.io/gefyra/ig-publisher-with-snapshot-support:latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Display complete version information using GitHub Action
+      - name: Display Tool & Release Information
+        uses: Gefyra/ig-publisher-action@v1
+        with:
+          variant: with-snapshot-support
+          command: echo
+          args: "=== Starting build with version information displayed above ==="
+          
+      # Run actual build commands directly in container for performance
+      - name: Download Dependencies
+        run: fhir-pkg-tool --sushi-deps-file sushi-config.yaml -o ./packages
+        
+      - name: Run SUSHI
+        run: sushi .
+        
+      - name: Build IG
+        run: igpublisher -ig ig.ini
+```
+
+**This hybrid approach provides:**
+- ✅ **Complete Version Display**: IG Publisher, SUSHI, FHIR Package Tool, Jekyll, Java, Node.js versions
+- ✅ **Release Information**: Latest GitHub release tag for reference  
+- ✅ **Docker Image Details**: Image digest, creation date
+- ✅ **Performance**: Container commands run directly without GitHub Action overhead
+- ✅ **Flexibility**: Mix GitHub Action steps with direct container commands as needed
 
 ## 📚 GitHub Actions Best Practices
 
