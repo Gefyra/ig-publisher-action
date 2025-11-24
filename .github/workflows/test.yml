@@ -53,7 +53,7 @@ jobs:
           docker save ig-publisher-test:latest > /tmp/ig-publisher-standard.tar
 
       - name: Upload standard image artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ig-publisher-standard-image
           path: /tmp/ig-publisher-standard.tar
