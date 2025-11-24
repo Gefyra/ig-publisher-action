@@ -25,10 +25,14 @@ RUN set -eux; \
 RUN gem install jekyll bundler --no-document
 
 # IG Publisher
-RUN mkdir -p /opt/ig \
- && curl -L "https://github.com/HL7/fhir-ig-publisher/releases/latest/download/publisher.jar" \
-    -o /opt/ig/publisher.jar \
- && printf '#!/usr/bin/env bash\nexec java -Xmx4g -jar /opt/ig/publisher.jar "$@"\n' > /usr/local/bin/igpublisher \
- && chmod +x /usr/local/bin/igpublisher
+RUN set -eux; \
+    mkdir -p /opt/ig; \
+    PUBLISHER_URL="https://github.com/HL7/fhir-ig-publisher/releases/latest/download/publisher.jar"; \
+    # -f: fail on HTTP errors, -L: follow redirects
+    curl -fL "$PUBLISHER_URL" -o /opt/ig/publisher.jar; \
+    # sanity check: 
+    test $(stat -c%s /opt/ig/publisher.jar) -gt 1000000; \
+    printf '#!/usr/bin/env bash\nexec java -Xmx4g -jar /opt/ig/publisher.jar "$@"\n' > /usr/local/bin/igpublisher; \
+    chmod +x /usr/local/bin/igpublisher
 
 WORKDIR /github/workspace
