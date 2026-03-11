@@ -24,7 +24,7 @@ on:
 
 env:
   PACKAGE_TYPE: container
-  PACKAGE_LIST: ig-publisher,ig-publisher-with-snapshot-support,igpublisher-devcontainer,igpublisher-devcontainer-image
+  PACKAGE_LIST: ig-publisher,ig-publisher-with-snapshot-support
   # Current release workflows publish "latest" and versioned tags
   PROTECTED_TAGS: latest
   DEFAULT_KEEP_TAGGED: 30
