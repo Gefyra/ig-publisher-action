@@ -10,7 +10,7 @@ on:
         description: "Only report what would be deleted"
         required: false
         type: boolean
-        default: true
+        default: false
       keep_tagged:
         description: "How many non-protected tagged versions to keep per package"
         required: false
@@ -43,6 +43,10 @@ jobs:
     steps:
       - name: Cleanup old GHCR package versions
         uses: actions/github-script@v8
+        env:
+          INPUT_DRY_RUN: ${{ github.event.inputs.dry_run || '' }}
+          INPUT_KEEP_TAGGED: ${{ github.event.inputs.keep_tagged || '' }}
+          INPUT_KEEP_UNTAGGED: ${{ github.event.inputs.keep_untagged || '' }}
         with:
           github-token: ${{ secrets.PACKAGE_CLEANUP_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -69,17 +73,16 @@ jobs:
             };
 
             const keepTagged = parseRetentionNumber(
-              core.getInput("keep_tagged"),
+              process.env.INPUT_KEEP_TAGGED,
               process.env.DEFAULT_KEEP_TAGGED,
               "keep_tagged"
             );
             const keepUntagged = parseRetentionNumber(
-              core.getInput("keep_untagged"),
+              process.env.INPUT_KEEP_UNTAGGED,
               process.env.DEFAULT_KEEP_UNTAGGED,
               "keep_untagged"
             );
-            const dryRunInput = core.getInput("dry_run");
-            const dryRun = dryRunInput === "" ? context.eventName === "workflow_dispatch" : dryRunInput === "true";
+            const dryRun = String(process.env.INPUT_DRY_RUN || "false").toLowerCase() === "true";
 
             core.info(`Cleanup mode: ${dryRun ? "DRY RUN" : "DELETE"}`);
             core.info(`Retention: keep_tagged=${keepTagged}, keep_untagged=${keepUntagged}`);
