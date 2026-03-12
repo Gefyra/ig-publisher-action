@@ -12,6 +12,10 @@ on:
         type: boolean
         default: false
 
+concurrency:
+  group: auto-release-standard-workflow
+  cancel-in-progress: false
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: gefyra/ig-publisher
@@ -76,6 +80,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: check-ig-publisher-version
     if: needs.check-ig-publisher-version.outputs.new_version_available == 'true'
+    concurrency:
+      group: auto-release-standard-build-and-release
+      cancel-in-progress: false
     permissions:
       contents: write
       packages: write
@@ -111,8 +118,10 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+
+      - name: Verify latest tag is available in GHCR
+        run: |
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest > /dev/null
 
       - name: Create and push tag
         run: |
