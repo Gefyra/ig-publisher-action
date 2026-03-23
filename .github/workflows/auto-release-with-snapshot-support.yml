@@ -120,7 +120,7 @@ jobs:
             echo "new_version_available=false" >> $GITHUB_OUTPUT
             echo "latest_ig_version=$LATEST_IG_VERSION" >> $GITHUB_OUTPUT
             echo "latest_pkg_version=$LATEST_PKG_VERSION" >> $GITHUB_OUTPUT
-            echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            echo "current_version=$CURRENT_PKG_VERSION" >> $GITHUB_OUTPUT
             echo "base_image_tag=$BASE_IMAGE_TAG" >> $GITHUB_OUTPUT
           fi
 
@@ -196,7 +196,13 @@ jobs:
           JAVA_VERSION=$(docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.check-versions.outputs.new_tag }} java --version 2>&1 | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "21")
           NODE_VERSION=$(docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.check-versions.outputs.new_tag }} node --version | sed 's/^v//')
           SUSHI_VERSION=$(docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.check-versions.outputs.new_tag }} sushi --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "latest")
-          PKG_VERSION=$(docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.check-versions.outputs.new_tag }} fhir-pkg-tool --help 2>&1 | grep -o "fhir-pkg-tool" | head -1 && echo "${{ needs.check-versions.outputs.latest_pkg_version }}" || echo "unavailable")
+          PKG_VERSION=$(docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.check-versions.outputs.new_tag }} \
+            fhir-pkg-tool --version 2>/dev/null \
+            | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z]+)?' \
+            | head -n 1 || true)
+          PKG_VERSION="${PKG_VERSION:-unavailable}"
+          PKG_VERSION="${PKG_VERSION//$'\r'/}"
+          PKG_VERSION="${PKG_VERSION//$'\n'/}"
           
           echo "ig_version=$IG_VERSION" >> $GITHUB_OUTPUT
           echo "java_version=$JAVA_VERSION" >> $GITHUB_OUTPUT
