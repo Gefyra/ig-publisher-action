@@ -10,7 +10,7 @@
 [![License](https://img.shields.io/github/license/Gefyra/ig-publisher-action?logo=opensource&label=License)](LICENSE)
 [![FHIR](https://img.shields.io/badge/FHIR-R4%2FR5-red?logo=hl7&logoColor=white)](https://hl7.org/fhir/)
 [![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk&logoColor=white)](https://openjdk.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-20-green?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-24-green?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Multi-Platform](https://img.shields.io/badge/Platform-AMD64%20%7C%20ARM64-lightgrey?logo=docker&logoColor=white)](https://github.com/Gefyra/ig-publisher-action/pkgs/container/ig-publisher)
 
 A comprehensive GitHub Action for building FHIR Implementation Guides with the HL7 FHIR IG Publisher, SUSHI, and optional FHIR Package Tool support.
@@ -21,7 +21,7 @@ A comprehensive GitHub Action for building FHIR Implementation Guides with the H
 - **HL7 FHIR IG Publisher** (latest)
 - **SUSHI** for FSH → FHIR conversion  
 - **Java 21** (Eclipse Temurin)
-- **Node.js 20**
+- **Node.js 24 (LTS)**
 - **Docker Image:** `ghcr.io/gefyra/ig-publisher:latest`
 
 ### 🔹 With Snapshot Support Version  
